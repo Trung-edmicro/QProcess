@@ -1,0 +1,39 @@
+Send an image file:
+
+import requests
+import json
+
+r = requests.post("https://api.mathpix.com/v3/text",
+    files={"file": open("cases_hw.jpg","rb")},
+    data={
+      "options_json": json.dumps({
+        "math_inline_delimiters": ["$", "$"],
+        "rm_spaces": True
+      })
+    },
+    headers={
+        "app_id": "APP_ID",
+        "app_key": "APP_KEY"
+    }
+)
+print(json.dumps(r.json(), indent=4, sort_keys=True))
+
+
+Response:
+
+{
+  "auto_rotate_confidence": 0,
+  "auto_rotate_degrees": 0,
+  "confidence": 1,
+  "confidence_rate": 1,
+  "image_height": 332,
+  "image_width": 850,
+  "is_handwritten": true,
+  "is_printed": false,
+  "latex_styled": "f(x)=\\left\\{\\begin{array}{ll}\nx^{2} & \\text { if } x<0 \\\\\n2 x & \\text { if } x \\geq 0\n\\end{array}\\right.",
+  "request_id": "2025_04_16_14b535679f6c84954b3dg",
+  "text": "$f(x)=\\left\\{\\begin{array}{ll}x^{2} & \\text { if } x<0 \\\\ 2 x & \\text { if } x \\geq 0\\end{array}\\right.$",
+  "version": "SuperNet-100"
+}
+
+
