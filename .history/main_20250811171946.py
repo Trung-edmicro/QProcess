@@ -1752,8 +1752,8 @@ def main():
                     print(f"❌ Bỏ qua {len(pdf_files)} PDF (cần cài pdf2image)")
                     
     elif mode == 2:
-        # Mode 2: Mathpix OCR + Q&A Mapping
-        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR + Q&A Mapping")
+        # Mode 2: Mathpix (ảnh + PDF)
+        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR")
         
         if num_files == 1:
             # Mode 2: Xử lý 1 file đơn lẻ

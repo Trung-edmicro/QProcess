@@ -208,4 +208,3 @@ test_*.py
 *_test.py
 
 history/
-data/prompt/

@@ -1500,35 +1500,34 @@ def post_process_with_mapping(content, input_filename, mode_name):
         str: Nội dung đã được mapping (nếu có) hoặc nội dung gốc
     """
     try:
+        # Hỏi user có muốn thực hiện mapping không
         print(f"\n🧩 QUESTION-ANSWER MAPPING")
         print("━" * 50)
-        print(f"🤖 Tự động mapping câu hỏi với lời giải bằng AI ({mode_name})")
+        print("🤖 Có thể tự động mapping câu hỏi với lời giải bằng AI")
+        
+        choice = input("❓ Có muốn thực hiện mapping? (y/n): ").strip().lower()
+        
+        if choice != 'y':
+            print("⏭️ Bỏ qua mapping, giữ nguyên nội dung OCR")
+            return content
+        
+        print("🔄 Bắt đầu mapping...")
         
         # Khởi tạo mapper
-        print("🔄 Khởi tạo AI mapper...")
         mapper = QuestionAnswerMapper()
         
         if not mapper.model:
             print("❌ Không thể khởi tạo AI model cho mapping")
-            print("⏭️ Tiếp tục với nội dung OCR gốc")
             return content
         
         # Gửi trực tiếp nội dung cho AI để xử lý
-        print(f"🤖 Đang gửi {len(content):,} ký tự cho AI...")
-        start_time = datetime.now()
-        
-        mapped_content = mapper.process_content(content)
-        
-        end_time = datetime.now()
-        processing_time = (end_time - start_time).total_seconds()
+        mapped_content = mapper.process_content_with_ai(content)
         
         if mapped_content:
-            print(f"✅ Mapping thành công! ({processing_time:.2f}s)")
-            print(f"📏 Kết quả: {len(mapped_content):,} ký tự")
+            print(f"✅ Mapping thành công!")
             return mapped_content
         else:
-            print(f"❌ Mapping thất bại ({processing_time:.2f}s)")
-            print("⏭️ Tiếp tục với nội dung OCR gốc")
+            print("❌ Mapping thất bại")
             return content
         
     except Exception as e:
@@ -1665,18 +1664,19 @@ def main():
         print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Chỉ ảnh)")
     print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF)")
     print("3️⃣  Mode 3: Q&A Mapping từ file .md có sẵn")
+    print("4️⃣  Mode 4: Test Q&A Mapping (testMapping.md)")
     print("0️⃣  Thoát")
     
     while True:
         try:
-            choice = input("\n👉 Nhập lựa chọn (1/2/3/0): ").strip()
+            choice = input("\n👉 Nhập lựa chọn (1/2/3/4/0): ").strip()
             
             if choice == "0":
                 return
-            elif choice in ["1", "2", "3"]:
+            elif choice in ["1", "2", "3", "4"]:
                 break
             else:
-                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2, 3 hoặc 0.")
+                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2, 3, 4 hoặc 0.")
         except KeyboardInterrupt:
             return
     
@@ -1713,8 +1713,8 @@ def main():
         print(f"   {i}. {file_type} {os.path.basename(path)}")
     
     if mode == 1:
-        # Mode 1: Vertex AI OCR + Q&A Mapping
-        print(f"\n🤖 Sử dụng Mode 1: Vertex AI OCR + Q&A Mapping")
+        # Mode 1: Vertex AI (ảnh + PDF với pdf2image)
+        print(f"\n🤖 Sử dụng Mode 1: Vertex AI OCR")
         
         if PDF_SUPPORT:
             print("📄 Hỗ trợ: Ảnh + PDF (với pdf2image conversion)")
@@ -1752,8 +1752,8 @@ def main():
                     print(f"❌ Bỏ qua {len(pdf_files)} PDF (cần cài pdf2image)")
                     
     elif mode == 2:
-        # Mode 2: Mathpix OCR + Q&A Mapping
-        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR + Q&A Mapping")
+        # Mode 2: Mathpix (ảnh + PDF)
+        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR")
         
         if num_files == 1:
             # Mode 2: Xử lý 1 file đơn lẻ

@@ -1,8 +1,6 @@
 import os
 import sys
 import time
-import re
-import traceback
 import multiprocessing as mp
 from config import app_config
 from datetime import datetime
@@ -1500,149 +1498,174 @@ def post_process_with_mapping(content, input_filename, mode_name):
         str: Nội dung đã được mapping (nếu có) hoặc nội dung gốc
     """
     try:
+        # Hỏi user có muốn thực hiện mapping không
         print(f"\n🧩 QUESTION-ANSWER MAPPING")
         print("━" * 50)
-        print(f"🤖 Tự động mapping câu hỏi với lời giải bằng AI ({mode_name})")
+        print("🔍 Phát hiện nội dung có thể chứa câu hỏi và lời giải")
+        print("🤖 Có thể tự động mapping câu hỏi với lời giải bằng AI")
+        
+        choice = input("❓ Có muốn thực hiện mapping? (y/n): ").strip().lower()
+        
+        if choice != 'y':
+            print("⏭️ Bỏ qua mapping, giữ nguyên nội dung OCR")
+            return content
+        
+        print("🔄 Bắt đầu mapping...")
         
         # Khởi tạo mapper
-        print("🔄 Khởi tạo AI mapper...")
         mapper = QuestionAnswerMapper()
         
         if not mapper.model:
             print("❌ Không thể khởi tạo AI model cho mapping")
-            print("⏭️ Tiếp tục với nội dung OCR gốc")
             return content
         
-        # Gửi trực tiếp nội dung cho AI để xử lý
-        print(f"🤖 Đang gửi {len(content):,} ký tự cho AI...")
-        start_time = datetime.now()
+        # Lưu nội dung vào file tạm để xử lý
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as temp_file:
+            temp_file.write(content)
+            temp_file_path = temp_file.name
         
-        mapped_content = mapper.process_content(content)
-        
-        end_time = datetime.now()
-        processing_time = (end_time - start_time).total_seconds()
-        
-        if mapped_content:
-            print(f"✅ Mapping thành công! ({processing_time:.2f}s)")
-            print(f"📏 Kết quả: {len(mapped_content):,} ký tự")
-            return mapped_content
-        else:
-            print(f"❌ Mapping thất bại ({processing_time:.2f}s)")
-            print("⏭️ Tiếp tục với nội dung OCR gốc")
+        try:
+            # Xử lý file tạm bằng method process_single_file mới
+            output_file = mapper.process_single_file(temp_file_path)
+            
+            if output_file:
+                # Đọc kết quả đã mapping
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    mapped_content = f.read()
+                
+                print(f"✅ Mapping thành công!")
+                
+                # Xóa file tạm và file output (vì chúng ta sẽ trả về content)
+                os.unlink(temp_file_path)
+                os.unlink(output_file)
+                
+                return mapped_content
+            else:
+                print("❌ Mapping thất bại")
+                os.unlink(temp_file_path)
+                return content
+                
+        except Exception as e:
+            print(f"❌ Lỗi trong quá trình mapping: {e}")
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
             return content
         
     except Exception as e:
         print(f"❌ Lỗi trong quá trình mapping: {e}")
         print("⏭️ Tiếp tục với nội dung OCR gốc")
         return content
-
-def process_existing_markdown_file():
-    """
-    Mode 3: Xử lý file .md có sẵn để mapping câu hỏi với lời giải
-    """
-    print("\n" + "="*60)
-    print("🧩 MODE 3: Q&A MAPPING TỪ FILE .MD CÓ SẴN")
-    print("="*60)
-    print("📝 Chức năng: Mapping câu hỏi với lời giải từ file .md đã có")
-    print("🤖 Engine: Vertex AI (Google Gemini)")
-    print("="*60)
-    
-    # Tìm file .md trong output folder
-    output_folder = "data/output"
-    md_files = []
-    
-    if os.path.exists(output_folder):
-        for file in os.listdir(output_folder):
-            if file.endswith('.md'):
-                md_files.append(os.path.join(output_folder, file))
-    
-    if md_files:
-        print(f"\n📁 Tìm thấy {len(md_files)} file .md trong {output_folder}:")
-        for i, file_path in enumerate(md_files, 1):
-            file_size = os.path.getsize(file_path) / 1024  # KB
-            print(f"   {i}. {os.path.basename(file_path)} ({file_size:.1f} KB)")
-        print()
-    else:
-        print(f"\n❌ Không tìm thấy file .md nào trong {output_folder}")
-        print("💡 Hãy đặt file .md cần xử lý vào thư mục này")
-        return
-    
-    # Cho user chọn file
-    while True:
-        try:
-            print("🔸 Chọn file để xử lý mapping:")
-            print("   📝 Nhập số thứ tự file, hoặc")
-            print("   📂 Nhập đường dẫn đầy đủ đến file .md")
-            choice = input("👉 File cần mapping: ").strip()
-            
-            selected_file = None
-            
-            if choice.isdigit() and 1 <= int(choice) <= len(md_files):
-                selected_file = md_files[int(choice) - 1]
-            elif os.path.exists(choice) and choice.endswith('.md'):
-                selected_file = choice
-            else:
-                print("❌ File không tồn tại hoặc không phải .md")
-                continue
-            
-            break
-            
-        except KeyboardInterrupt:
-            print("\n❌ Đã hủy.")
-            return
-    
-    print(f"\n📖 File được chọn: {os.path.basename(selected_file)}")
-    
-    # Khởi tạo mapper
-    mapper = QuestionAnswerMapper()
-    
-    if not mapper.model:
-        print("❌ Không thể khởi tạo Vertex AI. Vui lòng kiểm tra cấu hình.")
-        return
-    
-    # Xử lý mapping
-    print(f"\n🔄 Bắt đầu mapping...")
-    start_time = time.time()
-    
-    try:
-        output_file = mapper.process_single_file(selected_file)
+        extracted = mapper.extract_questions_and_answers(questions_content, answers_content)
+        questions = extracted['questions']
+        answers = extracted['answers']
         
-        if output_file:
-            processing_time = time.time() - start_time
-            print(f"\n✅ MAPPING THÀNH CÔNG!")
-            print(f"📁 File input: {os.path.basename(selected_file)}")
-            print(f"📁 File output: {os.path.basename(output_file)}")
-            print(f"⏱️ Thời gian xử lý: {processing_time:.2f} giây")
-            
-            # Hỏi có muốn xem preview không
-            preview = input("\n❓ Có muốn xem preview kết quả? (y/n): ").strip().lower()
-            if preview == 'y':
-                try:
-                    with open(output_file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    lines = content.split('\n')
-                    preview_lines = lines[:30]  # Hiển thị 30 dòng đầu
-                    
-                    print("\n" + "="*60)
-                    print("📋 PREVIEW KẾT QUẢ (30 dòng đầu)")
-                    print("="*60)
-                    for line in preview_lines:
-                        print(line)
-                    
-                    if len(lines) > 30:
-                        print(f"\n... (còn {len(lines) - 30} dòng nữa)")
-                    print("="*60)
-                    
-                except Exception as e:
-                    print(f"❌ Lỗi hiển thị preview: {e}")
-        else:
-            print("❌ Mapping thất bại!")
-            
+        print(f"🔍 Tìm thấy {len(questions)} câu hỏi và {len(answers)} lời giải")
+        
+        if not questions or not answers:
+            print("⚠️ Không đủ dữ liệu để mapping")
+            return content
+        
+        # Mapping bằng AI
+        mapped_pairs = mapper.map_questions_with_answers_ai(questions, answers)
+        
+        if not mapped_pairs:
+            print("❌ Mapping thất bại")
+            return content
+        
+        # Tạo nội dung đã mapping
+        mapped_content = generate_mapped_markdown(mapped_pairs, input_filename, mode_name)
+        
+        print(f"✅ Mapping thành công {len(mapped_pairs)} cặp câu hỏi-lời giải")
+        return mapped_content
+        
     except Exception as e:
         print(f"❌ Lỗi trong quá trình mapping: {e}")
+        print("⏭️ Tiếp tục với nội dung OCR gốc")
+        return content
+
+def split_content_for_mapping(content):
+    """
+    Tách nội dung thành 2 phần: câu hỏi và lời giải
+    Args:
+        content: Nội dung đầy đủ
+    Returns:
+        tuple: (questions_content, answers_content)
+    """
+    # Cách 1: Tìm phần "đáp án" hoặc "lời giải"
+    content_lower = content.lower()
     
-    print("\n🔚 Kết thúc Mode 3: Q&A Mapping từ file .md")
+    # Tìm các từ khóa phân tách
+    split_keywords = [
+        'đáp án', 'lời giải', 'hướng dẫn giải', 'giải chi tiết',
+        'answer', 'solution', 'explanation', 'detailed solution'
+    ]
+    
+    split_pos = -1
+    for keyword in split_keywords:
+        pos = content_lower.find(keyword)
+        if pos != -1:
+            split_pos = pos
+            break
+    
+    if split_pos != -1:
+        # Tách tại vị trí tìm thấy
+        questions_content = content[:split_pos].strip()
+        answers_content = content[split_pos:].strip()
+        return questions_content, answers_content
+    
+    # Cách 2: Tìm theo pattern trang
+    lines = content.split('\n')
+    questions_lines = []
+    answers_lines = []
+    
+    current_section = 'questions'
+    
+    for line in lines:
+        line_lower = line.lower().strip()
+        
+        # Kiểm tra nếu gặp từ khóa chuyển sang phần đáp án
+        if any(keyword in line_lower for keyword in split_keywords):
+            current_section = 'answers'
+        
+        if current_section == 'questions':
+            questions_lines.append(line)
+        else:
+            answers_lines.append(line)
+    
+    questions_content = '\n'.join(questions_lines).strip()
+    answers_content = '\n'.join(answers_lines).strip()
+    
+    # Nếu không tách được, trả về toàn bộ content cho cả 2 phần
+    if not questions_content or not answers_content:
+        return content, content
+    
+    return questions_content, answers_content
+
+def generate_mapped_markdown(mapped_pairs, input_filename, mode_name):
+    """
+    Tạo nội dung Markdown từ các cặp câu hỏi-lời giải đã mapping
+    """
+    content = f"# {os.path.splitext(input_filename)[0]} - Đã mapping\n\n"
+    content += f"*Được xử lý bằng {mode_name} và tự động mapping vào {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}*\n\n"
+    content += f"**Tổng số câu đã mapping: {len(mapped_pairs)}**\n\n"
+    content += "---\n\n"
+    
+    for i, pair in enumerate(mapped_pairs, 1):
+        question = pair['question']
+        answer = pair['answer']
+        confidence = pair['confidence']
+        
+        content += f"## Câu {question['number']}\n\n"
+        content += f"### 📝 Đề bài\n{question['text']}\n\n"
+        content += f"### ✅ Lời giải\n{answer['text']}\n\n"
+        
+        if confidence < 0.9:
+            content += f"*⚠️ Độ tin cậy mapping: {confidence:.2f} - Vui lòng kiểm tra lại*\n\n"
+        
+        content += "---\n\n"
+    
+    return content
 
 def main():
     # Hiển thị thông tin cấu hình
@@ -1664,28 +1687,22 @@ def main():
     else:
         print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Chỉ ảnh)")
     print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF)")
-    print("3️⃣  Mode 3: Q&A Mapping từ file .md có sẵn")
     print("0️⃣  Thoát")
     
     while True:
         try:
-            choice = input("\n👉 Nhập lựa chọn (1/2/3/0): ").strip()
+            choice = input("\n👉 Nhập lựa chọn (1/2/0): ").strip()
             
             if choice == "0":
                 return
-            elif choice in ["1", "2", "3"]:
+            elif choice in ["1", "2"]:
                 break
             else:
-                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2, 3 hoặc 0.")
+                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2 hoặc 0.")
         except KeyboardInterrupt:
             return
     
     mode = int(choice)
-    
-    if mode == 3:
-        # Mode 3: Xử lý file .md có sẵn
-        process_existing_markdown_file()
-        return
     
     # Lấy tất cả file ảnh và PDF trong thư mục input
     if mode == 1:
@@ -1713,8 +1730,8 @@ def main():
         print(f"   {i}. {file_type} {os.path.basename(path)}")
     
     if mode == 1:
-        # Mode 1: Vertex AI OCR + Q&A Mapping
-        print(f"\n🤖 Sử dụng Mode 1: Vertex AI OCR + Q&A Mapping")
+        # Mode 1: Vertex AI (ảnh + PDF với pdf2image)
+        print(f"\n🤖 Sử dụng Mode 1: Vertex AI OCR")
         
         if PDF_SUPPORT:
             print("📄 Hỗ trợ: Ảnh + PDF (với pdf2image conversion)")
@@ -1752,8 +1769,8 @@ def main():
                     print(f"❌ Bỏ qua {len(pdf_files)} PDF (cần cài pdf2image)")
                     
     elif mode == 2:
-        # Mode 2: Mathpix OCR + Q&A Mapping
-        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR + Q&A Mapping")
+        # Mode 2: Mathpix (ảnh + PDF)
+        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR")
         
         if num_files == 1:
             # Mode 2: Xử lý 1 file đơn lẻ
