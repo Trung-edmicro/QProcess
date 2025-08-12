@@ -22,7 +22,7 @@ class QuestionAnswerMapper:
             if self.vertex_config.is_configured():
                 self.vertex_config.initialize_vertex_ai()
                 self.model = GenerativeModel(
-                    model_name="gemini-2.5-flash",  # Sử dụng Flash cho mapping nhanh
+                    model_name="gemini-2.5-flash",
                     generation_config=GenerationConfig(
                         temperature=0.1,
                         top_p=0.8,
@@ -49,27 +49,33 @@ class QuestionAnswerMapper:
             return None
         
         try:
-            # Tạo prompt đơn giản và rõ ràng
             prompt = f"""
-Bạn là trợ lý biên tập tài liệu.  
-Nhiệm vụ: Đọc toàn bộ nội dung sau, ghép **mỗi câu hỏi** với **lời giải chi tiết** tương ứng.  
+            Bạn là trợ lý biên tập tài liệu.  
+            Nhiệm vụ: Đọc toàn bộ nội dung sau, ghép **mỗi câu hỏi** với **lời giải chi tiết** tương ứng.  
 
-**Định dạng bắt buộc cho mỗi cặp:**
+            **Với phần định dạng bắt buộc:**
+            ```
+            **Phần (nếu là tiếng Anh thay Phần -> Part) [Số/Kí tự la mã]:** [Nguyên văn nội dung phần]
+            ```
 
-**Câu [Số]:** [Nguyên văn câu hỏi + các đáp án A, B, C, D...]  
-Lời giải  
-[Nguyên văn lời giải chi tiết tương ứng]
+            **Với định dạng câu hỏi và lời giải bắt buộc cho mỗi cặp:**
+            ```
+            **Câu (nếu là tiếng Anh thay Câu -> Question) [Số]:** [Nguyên văn câu hỏi + các đáp án A, B, C, D...]   
+            Lời giải   
+            [Nguyên văn lời giải chi tiết tương ứng]
+            ```
 
-**Quy tắc bắt buộc:**
-1. Giữ nguyên toàn bộ nội dung gốc của phần, câu hỏi và lời giải, bao gồm số thứ tự, ký hiệu, công thức…  
-2. Không lược bỏ hay thay đổi nội dung quan trọng.  
-3. Không tự ý bịa thêm lời giải hoặc thông tin ngoài nguồn.  
-4. Không thêm câu dẫn hoặc mô tả ngoài định dạng yêu cầu.  
-5. Xử lý tất cả câu hỏi có trong tài liệu, theo đúng thứ tự xuất hiện.  
+            **Quy tắc bắt buộc:**
+            1. Hãy giữ nguyên toàn bộ nội dung gốc của phần, câu hỏi và lời giải, bao gồm số thứ tự, nội dung, ký hiệu, công thức…
+            2. Nếu có bảng đang ở dạng Markdown hay mã Latex thì bắt buộc chuyển đổi sang dạng mã HTML (không cần style).
+            3. Không lược bỏ hay thay đổi nội dung quan trọng.  
+            4. Lọc nội dung Lời giải và ghép vào câu hỏi tương ứng. Tuyệt đối tự ý bịa thêm lời giải hoặc thông tin ngoài nguồn.  
+            5. Không thêm câu dẫn hoặc mô tả ngoài định dạng yêu cầu.  
+            6. Xử lý tất cả câu hỏi có trong tài liệu, theo đúng thứ tự xuất hiện.
 
-Nội dung cần xử lý:  
-{content}
-"""
+            Nội dung cần xử lý:  
+            {content}
+            """
             
             # Gửi cho AI
             print(f"🤖 Đang gửi {len(content):,} ký tự cho AI...")

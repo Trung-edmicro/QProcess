@@ -8,7 +8,7 @@ from config import app_config
 from datetime import datetime
 from vertexai.generative_models import GenerativeModel, Part, GenerationConfig
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from processors import ExamProcessor, QuestionAnswerMapper
+from processors import QuestionAnswerMapper
 from processors.image_processor import save_diagrams_from_line_data, insert_diagrams_into_text
 
 # PDF processing imports for Mode 1
@@ -20,6 +20,15 @@ except ImportError:
     PDF_SUPPORT = False
     print("⚠️ PDF support cho Mode 1 không khả dụng. Cài đặt: pip install pdf2image")
     print("⚠️ Và cài đặt poppler-utils (Windows: choco install poppler)")
+
+# DOCX processing imports
+try:
+    import aspose.words as aw
+    import shutil
+    DOCX_SUPPORT = True
+except ImportError:
+    DOCX_SUPPORT = False
+    print("⚠️ DOCX support không khả dụng. Cài đặt: pip install aspose-words")
 
 def convert_pdf_to_images(pdf_path, dpi=200):
     """
@@ -88,6 +97,56 @@ def cleanup_temp_images(image_paths):
         
     except Exception as e:
         print(f"⚠️ Lỗi dọn dẹp temp files: {str(e)}")
+
+def convert_docx_to_pdf(docx_path):
+    """
+    Convert file DOCX thành PDF sử dụng aspose-words
+    Args:
+        docx_path: đường dẫn file DOCX
+    Returns:
+        str: đường dẫn file PDF tạm hoặc None nếu lỗi
+    """
+    if not DOCX_SUPPORT:
+        print("❌ DOCX support không khả dụng!")
+        return None
+    
+    try:
+        print(f"🔄 Đang convert DOCX thành PDF: {os.path.basename(docx_path)}")
+        
+        # Tạo tên file PDF tạm với timestamp
+        temp_pdf_name = f"temp_docx_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        temp_pdf_path = os.path.join(os.path.dirname(docx_path), temp_pdf_name)
+        
+        # Load DOCX document và save as PDF
+        doc = aw.Document(docx_path)
+        doc.save(temp_pdf_path)
+        
+        if os.path.exists(temp_pdf_path):
+            print(f"✅ Đã convert thành PDF: {os.path.basename(temp_pdf_path)}")
+            return temp_pdf_path
+        else:
+            print("❌ Không thể tạo file PDF")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Lỗi convert DOCX to PDF: {e}")
+        return None
+
+def cleanup_temp_pdf(pdf_path):
+    """
+    Dọn dẹp file PDF tạm
+    Args:
+        pdf_path: đường dẫn file PDF tạm
+    """
+    if not pdf_path:
+        return
+    
+    try:
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            print(f"🗑️ Đã xóa file PDF tạm: {os.path.basename(pdf_path)}")
+    except Exception as e:
+        print(f"❌ Lỗi dọn dẹp temp PDF: {e}")
 
 def ocr_single_pdf_vertex_ai(pdf_path, index=None, show_result=False):
     """
@@ -429,7 +488,6 @@ def ocr_single_image(image_path, index=None, show_result=False):
         1. Trường hợp ảnh có kí tự đặc biệt (như chữ ký, hình vẽ tay) thì không trả về ở kết quả.
         2. Với ảnh là đề thi thì cần loại bỏ các phần không liên quan như thông tin trường/học sinh, hướng dẫn, số trang, mã đề.
         3. Vì là nội dung OCR liên quan đến các câu hỏi nên cần đảm bảo có các phần tiêu đề, câu hỏi, đáp án rõ ràng và được in đậm tên phần (**Phần I.{nội dung}**), số câu (**Câu 1:**).
-        4. Với câu hỏi là dạng trắc nghiệm, nếu có đáp án đúng thông qua các từ khóa như "Đáp án đúng là", "Chọn đáp án", "Câu trả lời đúng là", "Khoanh tròn bằng tay", "Đáp án được bôi màu khác với đáp án còn lại", v.v... thì bôi đậm đáp án đúng ở kết quả trả về (ví dụ **A.**).
         """
         
         text_part = Part.from_text(text_prompt)
@@ -438,7 +496,7 @@ def ocr_single_image(image_path, index=None, show_result=False):
         generation_config = GenerationConfig(
             temperature=0.1,
             top_p=0.8,
-            max_output_tokens=8192
+            max_output_tokens=15000
         )
         
         # Gọi API với retry logic
@@ -549,7 +607,6 @@ def ocr_single_image_mathpix(image_path, index=None, show_result=False):
         if index is not None:
             print(f"🔄 {prefix} Bắt đầu xử lý (Mathpix): {os.path.basename(image_path)}")
         else:
-            print("=== TEST OCR IMAGE VỚI MATHPIX API ===")
             print(f"📷 Đang xử lý ảnh: {os.path.basename(image_path)}")
         
         # Kiểm tra cấu hình Mathpix
@@ -897,7 +954,7 @@ def ocr_single_pdf_mathpix(pdf_path, index=None, show_result=False):
 
 def process_single_file_mathpix(file_info):
     """
-    Wrapper cho multiprocessing - gọi ocr_single_image_mathpix hoặc ocr_single_pdf_mathpix
+    Wrapper cho multiprocessing - gọi ocr_single_image_mathpix, ocr_single_pdf_mathpix hoặc process_single_docx_mathpix
     Args:
         file_info: tuple (index, file_path)
     Returns:
@@ -910,6 +967,8 @@ def process_single_file_mathpix(file_info):
     
     if ext == '.pdf':
         return ocr_single_pdf_mathpix(file_path, index=index, show_result=False)
+    elif ext == '.docx':
+        return process_single_docx_mathpix(file_path, index=index, show_result=False)
     else:
         return ocr_single_image_mathpix(file_path, index=index, show_result=False)
 
@@ -1119,9 +1178,8 @@ def save_multiple_results_to_markdown(results, output_folder):
                 for result in successful_results:
                     combined_content += result['result_text']
                 
-                # Xử lý thêm template lời giải
-                processed_content = ExamProcessor.process_exam_content(combined_content)
-                f.write(processed_content)
+                # Ghi trực tiếp nội dung đã OCR
+                f.write(combined_content)
             
             # Kết quả thất bại
             if failed_results:
@@ -1130,7 +1188,7 @@ def save_multiple_results_to_markdown(results, output_folder):
                     f.write(f"### 📷 Ảnh {result['index'] + 1}: `{os.path.basename(result['image_path'])}`\n\n")
                     f.write(f"**Lỗi:** {result['error_msg']}\n\n")
             
-        print(f"✅ Đã xử lý và thêm template lời giải")
+        print(f"✅ Đã xử lý và lưu kết quả OCR")
         return output_file
         
     except Exception as e:
@@ -1160,9 +1218,8 @@ def save_multiple_results_to_markdown_mathpix(results, output_folder):
                 for result in successful_results:
                     combined_content += result['result_text'] + "\n\n"
                 
-                # Xử lý thêm template lời giải
-                processed_content = ExamProcessor.process_exam_content(combined_content)
-                f.write(processed_content)
+                # Ghi trực tiếp nội dung đã OCR
+                f.write(combined_content)
             
             # Kết quả thất bại
             if failed_results:
@@ -1171,7 +1228,7 @@ def save_multiple_results_to_markdown_mathpix(results, output_folder):
                     f.write(f"### 📷 Ảnh {result['index'] + 1}: `{os.path.basename(result['image_path'])}`\n\n")
                     f.write(f"**Lỗi:** {result['error_msg']}\n\n")
             
-        print(f"✅ Đã xử lý và thêm template lời giải (Mathpix)")
+        print(f"✅ Đã xử lý và lưu kết quả OCR (Mathpix)")
         return output_file
         
     except Exception as e:
@@ -1196,8 +1253,7 @@ def save_single_result_to_markdown_mathpix(result_text, image_path, output_folde
         output_file = os.path.join(output_folder, filename)
         
         with open(output_file, "w", encoding="utf-8") as f:
-            processed_content = ExamProcessor.process_exam_content(result_text)
-            f.write(processed_content)
+            f.write(result_text)
         
         return output_file
         
@@ -1208,10 +1264,11 @@ def save_single_result_to_markdown_mathpix(result_text, image_path, output_folde
         return None
 
 def get_supported_files_from_folder(folder_path):
-    """Lấy danh sách tất cả file ảnh và PDF trong thư mục"""
+    """Lấy danh sách tất cả file ảnh, PDF và DOCX trong thư mục"""
     image_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff'}
     pdf_extensions = {'.pdf'}
-    supported_extensions = image_extensions | pdf_extensions
+    docx_extensions = {'.docx'}
+    supported_extensions = image_extensions | pdf_extensions | docx_extensions
     
     supported_files = []
     
@@ -1227,13 +1284,148 @@ def get_supported_files_from_folder(folder_path):
     supported_files.sort()  # Sắp xếp theo tên file
     return supported_files
 
+def process_single_docx_vertex_ai(docx_path, index=None, show_result=False):
+    """
+    Xử lý DOCX với Vertex AI: DOCX → PDF → OCR → Mapping
+    Args:
+        docx_path: đường dẫn file DOCX
+        index: index của file (cho multiprocessing), None cho single mode
+        show_result: có hiển thị kết quả chi tiết không (cho single mode)
+    Returns:
+        tuple (result_text, success, error_msg) cho single mode
+        tuple (index, result_text, docx_path, success, error_msg) cho multiprocessing
+    """
+    try:
+        prefix = f"[Process {index}]" if index is not None else ""
+        
+        if index is not None:
+            print(f"🔄 {prefix} Bắt đầu xử lý DOCX (Vertex AI): {os.path.basename(docx_path)}")
+        else:
+            print(f"📄 Đang xử lý DOCX với Vertex AI: {os.path.basename(docx_path)}")
+        
+        # Convert DOCX to PDF
+        temp_pdf_path = convert_docx_to_pdf(docx_path)
+        
+        if not temp_pdf_path:
+            error_msg = "Không thể convert DOCX to PDF"
+            if index is not None:
+                return (index, None, docx_path, False, error_msg)
+            else:
+                print(f"❌ {error_msg}")
+                return (None, False, error_msg)
+        
+        # Sử dụng OCR PDF với Vertex AI
+        result = ocr_single_pdf_vertex_ai(temp_pdf_path, index=None, show_result=False)
+        
+        # Dọn dẹp file PDF tạm
+        cleanup_temp_pdf(temp_pdf_path)
+        
+        if result and result[1]:  # success
+            if index is not None:
+                print(f"✅ {prefix} Hoàn thành DOCX: {os.path.basename(docx_path)}")
+                return (index, result[0], docx_path, True, None)
+            else:
+                print("✅ Đã xử lý DOCX thành công!")
+                if show_result:
+                    print("\n" + "="*60)
+                    print("📄 KẾT QUẢ XỬ LÝ DOCX (VERTEX AI):")
+                    print("="*60)
+                    print(result[0][:1000] + "..." if len(result[0]) > 1000 else result[0])
+                    print("="*60)
+                return (result[0], True, None)
+        else:
+            error_msg = result[2] if result and len(result) > 2 else "Lỗi OCR PDF"
+            if index is not None:
+                return (index, None, docx_path, False, error_msg)
+            else:
+                print(f"❌ {error_msg}")
+                return (None, False, error_msg)
+                
+    except Exception as e:
+        error_msg = f"Lỗi khi xử lý DOCX với Vertex AI {docx_path}: {str(e)}"
+        if index is not None:
+            print(f"❌ {prefix} {error_msg}")
+            return (index, None, docx_path, False, error_msg)
+        else:
+            print(f"❌ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return (None, False, error_msg)
+
+def process_single_docx_mathpix(docx_path, index=None, show_result=False):
+    """
+    Xử lý DOCX với Mathpix: DOCX → PDF → OCR → Mapping
+    Args:
+        docx_path: đường dẫn file DOCX
+        index: index của file (cho multiprocessing), None cho single mode
+        show_result: có hiển thị kết quả chi tiết không (cho single mode)
+    Returns:
+        tuple (result_text, success, error_msg) cho single mode
+        tuple (index, result_text, docx_path, success, error_msg) cho multiprocessing
+    """
+    try:
+        prefix = f"[Process {index}]" if index is not None else ""
+        
+        if index is not None:
+            print(f"🔄 {prefix} Bắt đầu xử lý DOCX (Mathpix): {os.path.basename(docx_path)}")
+        else:
+            print(f"📄 Đang xử lý DOCX với Mathpix: {os.path.basename(docx_path)}")
+        
+        # Convert DOCX to PDF
+        temp_pdf_path = convert_docx_to_pdf(docx_path)
+        
+        if not temp_pdf_path:
+            error_msg = "Không thể convert DOCX to PDF"
+            if index is not None:
+                return (index, None, docx_path, False, error_msg)
+            else:
+                print(f"❌ {error_msg}")
+                return (None, False, error_msg)
+        
+        # Sử dụng OCR PDF với Mathpix
+        result = ocr_single_pdf_mathpix(temp_pdf_path, index=None, show_result=False)
+        
+        # Dọn dẹp file PDF tạm
+        cleanup_temp_pdf(temp_pdf_path)
+        
+        if result and result[1]:  # success
+            if index is not None:
+                print(f"✅ {prefix} Hoàn thành DOCX: {os.path.basename(docx_path)}")
+                return (index, result[0], docx_path, True, None)
+            else:
+                print("✅ Đã xử lý DOCX thành công!")
+                if show_result:
+                    print("\n" + "="*60)
+                    print("📄 KẾT QUẢ XỬ LÝ DOCX (MATHPIX):")
+                    print("="*60)
+                    print(result[0][:1000] + "..." if len(result[0]) > 1000 else result[0])
+                    print("="*60)
+                return (result[0], True, None)
+        else:
+            error_msg = "Không thể OCR bất kỳ ảnh nào từ DOCX"
+            if index is not None:
+                return (index, None, docx_path, False, error_msg)
+            else:
+                print(f"❌ {error_msg}")
+                return (None, False, error_msg)
+                
+    except Exception as e:
+        error_msg = f"Lỗi khi xử lý DOCX với Mathpix {docx_path}: {str(e)}"
+        if index is not None:
+            print(f"❌ {prefix} {error_msg}")
+            return (index, None, docx_path, False, error_msg)
+        else:
+            print(f"❌ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return (None, False, error_msg)
+
 def get_image_files_from_folder(folder_path):
     """Lấy danh sách tất cả file ảnh trong thư mục - giữ để backward compatibility"""
     return [f for f in get_supported_files_from_folder(folder_path) 
             if os.path.splitext(f)[1].lower() != '.pdf']
 
 def single_image_mode(image_path):
-    """Test xử lý 1 ảnh đơn lẻ"""
     print(f"\n🔄 CHẾ ĐỘ: Xử lý ảnh đơn lẻ")
     print(f"📷 Ảnh: {os.path.basename(image_path)}")
     
@@ -1248,17 +1440,59 @@ def single_image_mode(image_path):
         if output_file:
             print(f"💾 Đã lưu kết quả vào: {os.path.basename(output_file)}")
     else:
-        print("\n❌ TEST THẤT BẠI!")
+        print("\n❌ THẤT BẠI!")
+
+def single_file_mode_vertex_ai(file_path):
+    """Xử lý 1 file đơn lẻ (ảnh/PDF/DOCX) với Vertex AI - Mode 1"""
+    if file_path.endswith('.pdf'):
+        file_type = "PDF"
+    elif file_path.endswith('.docx'):
+        file_type = "DOCX"
+    else:
+        file_type = "ảnh"
+        
+    print(f"\n🔄 CHẾ ĐỘ: Xử lý {file_type} đơn lẻ (Vertex AI)")
+    print(f"📁 File: {os.path.basename(file_path)}")
+    
+    # Gọi function phù hợp
+    if file_path.endswith('.pdf'):
+        result = ocr_single_pdf_vertex_ai(file_path, index=None, show_result=True)
+    elif file_path.endswith('.docx'):
+        result = process_single_docx_vertex_ai(file_path, index=None, show_result=True)
+    else:
+        result = ocr_single_image(file_path, index=None, show_result=True)
+
+    if result and result[1]:  # result[1] là success flag
+        # Áp dụng mapping
+        final_content = post_process_with_mapping(result[0], os.path.basename(file_path), "Vertex AI")
+        
+        # Lưu kết quả
+        output_file = save_ocr_result_to_markdown(final_content, file_path, app_config.output_folder)
+        
+        if output_file:
+            print(f"💾 Đã lưu kết quả vào: {os.path.basename(output_file)}")
+        else:
+            print("❌ Lỗi khi lưu file!")
+    else:
+        print("\n❌ THẤT BẠI!")
 
 def single_file_mode_mathpix(file_path):
-    """Xử lý 1 file đơn lẻ (ảnh/PDF) với Mathpix API - Mode 2"""
-    file_type = "PDF" if file_path.endswith('.pdf') else "ảnh"
+    """Xử lý 1 file đơn lẻ (ảnh/PDF/DOCX) với Mathpix API - Mode 2"""
+    if file_path.endswith('.pdf'):
+        file_type = "PDF"
+    elif file_path.endswith('.docx'):
+        file_type = "DOCX"
+    else:
+        file_type = "ảnh"
+        
     print(f"\n🔄 CHẾ ĐỘ: Xử lý {file_type} đơn lẻ (Mathpix API)")
-    print(f"� File: {os.path.basename(file_path)}")
+    print(f"📁 File: {os.path.basename(file_path)}")
     
     # Gọi function phù hợp
     if file_path.endswith('.pdf'):
         result = ocr_single_pdf_mathpix(file_path, index=None, show_result=True)
+    elif file_path.endswith('.docx'):
+        result = process_single_docx_mathpix(file_path, index=None, show_result=True)
     else:
         result = ocr_single_image_mathpix(file_path, index=None, show_result=True)
 
@@ -1278,10 +1512,9 @@ def single_file_mode_mathpix(file_path):
         else:
             print("❌ Lỗi khi lưu file!")
     else:
-        print("\n❌ TEST THẤT BẠI!")
+        print("\n❌ THẤT BẠI!")
 
 def single_image_mode_mathpix(image_path):
-    """Test xử lý 1 ảnh đơn lẻ với Mathpix API - Mode 2 - Backward compatibility"""
     return single_file_mode_mathpix(image_path)
 
 def multiple_files_mode_mathpix(file_paths, max_workers=None):
@@ -1391,20 +1624,6 @@ def single_pdf_mode_vertex_ai(pdf_path):
             
             print(f"\n✅ Hoàn thành trong {processing_time:.2f} giây")
             print(f"💾 Đã lưu: {os.path.basename(output_file)}")
-            
-            # Hỏi có muốn xử lý thêm với ExamProcessor không
-            choice = input("\n❓ Có muốn thêm template đáp án (ExamProcessor)? (y/n): ").strip().lower()
-            if choice in ['y', 'yes']:
-                try:
-                    processed_content = ExamProcessor.process_exam_content(result[0])
-                    exam_output_file = os.path.join(app_config.output_folder, f"{os.path.splitext(os.path.basename(pdf_path))[0]}_vertex_exam_processed.md")
-                    
-                    with open(exam_output_file, 'w', encoding='utf-8') as f:
-                        f.write(processed_content)
-                    
-                    print(f"📝 Đã thêm template đáp án: {os.path.basename(exam_output_file)}")
-                except Exception as e:
-                    print(f"⚠️ Lỗi khi thêm template: {e}")
             
         except Exception as e:
             print(f"❌ Lỗi khi lưu file: {e}")
@@ -1536,114 +1755,6 @@ def post_process_with_mapping(content, input_filename, mode_name):
         print("⏭️ Tiếp tục với nội dung OCR gốc")
         return content
 
-def process_existing_markdown_file():
-    """
-    Mode 3: Xử lý file .md có sẵn để mapping câu hỏi với lời giải
-    """
-    print("\n" + "="*60)
-    print("🧩 MODE 3: Q&A MAPPING TỪ FILE .MD CÓ SẴN")
-    print("="*60)
-    print("📝 Chức năng: Mapping câu hỏi với lời giải từ file .md đã có")
-    print("🤖 Engine: Vertex AI (Google Gemini)")
-    print("="*60)
-    
-    # Tìm file .md trong output folder
-    output_folder = "data/output"
-    md_files = []
-    
-    if os.path.exists(output_folder):
-        for file in os.listdir(output_folder):
-            if file.endswith('.md'):
-                md_files.append(os.path.join(output_folder, file))
-    
-    if md_files:
-        print(f"\n📁 Tìm thấy {len(md_files)} file .md trong {output_folder}:")
-        for i, file_path in enumerate(md_files, 1):
-            file_size = os.path.getsize(file_path) / 1024  # KB
-            print(f"   {i}. {os.path.basename(file_path)} ({file_size:.1f} KB)")
-        print()
-    else:
-        print(f"\n❌ Không tìm thấy file .md nào trong {output_folder}")
-        print("💡 Hãy đặt file .md cần xử lý vào thư mục này")
-        return
-    
-    # Cho user chọn file
-    while True:
-        try:
-            print("🔸 Chọn file để xử lý mapping:")
-            print("   📝 Nhập số thứ tự file, hoặc")
-            print("   📂 Nhập đường dẫn đầy đủ đến file .md")
-            choice = input("👉 File cần mapping: ").strip()
-            
-            selected_file = None
-            
-            if choice.isdigit() and 1 <= int(choice) <= len(md_files):
-                selected_file = md_files[int(choice) - 1]
-            elif os.path.exists(choice) and choice.endswith('.md'):
-                selected_file = choice
-            else:
-                print("❌ File không tồn tại hoặc không phải .md")
-                continue
-            
-            break
-            
-        except KeyboardInterrupt:
-            print("\n❌ Đã hủy.")
-            return
-    
-    print(f"\n📖 File được chọn: {os.path.basename(selected_file)}")
-    
-    # Khởi tạo mapper
-    mapper = QuestionAnswerMapper()
-    
-    if not mapper.model:
-        print("❌ Không thể khởi tạo Vertex AI. Vui lòng kiểm tra cấu hình.")
-        return
-    
-    # Xử lý mapping
-    print(f"\n🔄 Bắt đầu mapping...")
-    start_time = time.time()
-    
-    try:
-        output_file = mapper.process_single_file(selected_file)
-        
-        if output_file:
-            processing_time = time.time() - start_time
-            print(f"\n✅ MAPPING THÀNH CÔNG!")
-            print(f"📁 File input: {os.path.basename(selected_file)}")
-            print(f"📁 File output: {os.path.basename(output_file)}")
-            print(f"⏱️ Thời gian xử lý: {processing_time:.2f} giây")
-            
-            # Hỏi có muốn xem preview không
-            preview = input("\n❓ Có muốn xem preview kết quả? (y/n): ").strip().lower()
-            if preview == 'y':
-                try:
-                    with open(output_file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    lines = content.split('\n')
-                    preview_lines = lines[:30]  # Hiển thị 30 dòng đầu
-                    
-                    print("\n" + "="*60)
-                    print("📋 PREVIEW KẾT QUẢ (30 dòng đầu)")
-                    print("="*60)
-                    for line in preview_lines:
-                        print(line)
-                    
-                    if len(lines) > 30:
-                        print(f"\n... (còn {len(lines) - 30} dòng nữa)")
-                    print("="*60)
-                    
-                except Exception as e:
-                    print(f"❌ Lỗi hiển thị preview: {e}")
-        else:
-            print("❌ Mapping thất bại!")
-            
-    except Exception as e:
-        print(f"❌ Lỗi trong quá trình mapping: {e}")
-    
-    print("\n🔚 Kết thúc Mode 3: Q&A Mapping từ file .md")
-
 def main():
     # Hiển thị thông tin cấu hình
     app_config.get_config_summary()
@@ -1655,51 +1766,60 @@ def main():
     else:
         print("📄 PDF SUPPORT: ❌ Không hỗ trợ (cần cài: pip install pdf2image)")
         print("   💡 Mode 1 chỉ hỗ trợ ảnh, Mode 2 vẫn hỗ trợ đầy đủ")
+    
+    # Hiển thị DOCX support status
+    if DOCX_SUPPORT:
+        print("📄 DOCX SUPPORT: ✅ Có hỗ trợ (aspose-words đã cài đặt)")
+    else:
+        print("📄 DOCX SUPPORT: ❌ Không hỗ trợ (cần cài: pip install aspose-words)")
     print()
     
     # Cho phép user chọn mode
     print("🎯 CHỌN MODE XỬ LÝ:")
-    if PDF_SUPPORT:
+    if PDF_SUPPORT and DOCX_SUPPORT:
+        print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Ảnh + PDF + DOCX)")
+    elif PDF_SUPPORT:
         print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Ảnh + PDF)")
     else:
         print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Chỉ ảnh)")
-    print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF)")
-    print("3️⃣  Mode 3: Q&A Mapping từ file .md có sẵn")
+    
+    if DOCX_SUPPORT:
+        print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF + DOCX)")
+    else:
+        print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF)")
     print("0️⃣  Thoát")
     
     while True:
         try:
-            choice = input("\n👉 Nhập lựa chọn (1/2/3/0): ").strip()
+            choice = input("\n👉 Nhập lựa chọn (1/2/0): ").strip()
             
             if choice == "0":
                 return
-            elif choice in ["1", "2", "3"]:
+            elif choice in ["1", "2"]:
                 break
             else:
-                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2, 3 hoặc 0.")
+                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2 hoặc 0.")
         except KeyboardInterrupt:
             return
     
     mode = int(choice)
     
-    if mode == 3:
-        # Mode 3: Xử lý file .md có sẵn
-        process_existing_markdown_file()
-        return
+    # Lấy tất cả file ảnh, PDF và DOCX trong thư mục input
+    file_paths = get_supported_files_from_folder(app_config.input_folder)
     
-    # Lấy tất cả file ảnh và PDF trong thư mục input
+    # Tạo mô tả file type name
     if mode == 1:
-        # Mode 1 hỗ trợ cả ảnh và PDF (với PDF support)
+        support_types = ["ảnh"]
         if PDF_SUPPORT:
-            file_paths = get_supported_files_from_folder(app_config.input_folder)
-            file_type_name = "file (ảnh/PDF)"
-        else:
-            file_paths = get_image_files_from_folder(app_config.input_folder)
-            file_type_name = "ảnh"
-    else:
-        # Mode 2 hỗ trợ cả ảnh và PDF
-        file_paths = get_supported_files_from_folder(app_config.input_folder)
-        file_type_name = "file"
+            support_types.append("PDF")
+        if DOCX_SUPPORT:
+            support_types.append("DOCX")
+        file_type_name = "/".join(support_types)
+    else:  # mode == 2
+        support_types = ["ảnh", "PDF"]
+        if DOCX_SUPPORT:
+            support_types.append("DOCX")
+        file_type_name = "/".join(support_types)
     
     if not file_paths:
         print(f"📁 Vui lòng thêm {file_type_name} vào: {app_config.input_folder}")
@@ -1707,19 +1827,26 @@ def main():
     
     # Tự động chọn mode dựa trên số lượng file
     num_files = len(file_paths)
-    print(f"\n� Tìm thấy {num_files} {file_type_name} trong thư mục input:")
+    print(f"\n📁 Tìm thấy {num_files} {file_type_name} trong thư mục input:")
     for i, path in enumerate(file_paths, 1):
-        file_type = "📄 PDF" if path.endswith('.pdf') else "📷 IMG"
+        if path.endswith('.pdf'):
+            file_type = "📄 PDF"
+        elif path.endswith('.docx'):
+            file_type = "📄 DOCX"
+        else:
+            file_type = "📷 IMG"
         print(f"   {i}. {file_type} {os.path.basename(path)}")
     
     if mode == 1:
         # Mode 1: Vertex AI OCR + Q&A Mapping
         print(f"\n🤖 Sử dụng Mode 1: Vertex AI OCR + Q&A Mapping")
         
+        support_list = ["Ảnh"]
         if PDF_SUPPORT:
-            print("📄 Hỗ trợ: Ảnh + PDF (với pdf2image conversion)")
-        else:
-            print("📄 Hỗ trợ: Chỉ ảnh (cần cài pdf2image để hỗ trợ PDF)")
+            support_list.append("PDF")
+        if DOCX_SUPPORT:
+            support_list.append("DOCX")
+        print(f"📄 Hỗ trợ: {' + '.join(support_list)}")
         
         if num_files == 1:
             # Mode 1: Xử lý 1 file đơn lẻ
@@ -1729,6 +1856,11 @@ def main():
                     single_pdf_mode_vertex_ai(file_path)
                 else:
                     print("❌ PDF không được hỗ trợ. Cần cài đặt: pip install pdf2image")
+            elif file_path.lower().endswith('.docx'):
+                if DOCX_SUPPORT:
+                    single_file_mode_vertex_ai(file_path)
+                else:
+                    print("❌ DOCX không được hỗ trợ. Cần cài đặt: pip install docx2pdf")
             else:
                 single_image_mode(file_path)
         else:
@@ -1737,8 +1869,9 @@ def main():
             print(f"🚀 Sử dụng {max_workers} processes")
             
             # Phân loại files
-            image_files = [f for f in file_paths if not f.lower().endswith('.pdf')]
+            image_files = [f for f in file_paths if not f.lower().endswith(('.pdf', '.docx'))]
             pdf_files = [f for f in file_paths if f.lower().endswith('.pdf')]
+            docx_files = [f for f in file_paths if f.lower().endswith('.docx')]
             
             if image_files:
                 print(f"📷 Xử lý {len(image_files)} ảnh với Vertex AI...")
@@ -1750,6 +1883,15 @@ def main():
                     multiple_pdfs_mode_vertex_ai(pdf_files, max_workers)
                 else:
                     print(f"❌ Bỏ qua {len(pdf_files)} PDF (cần cài pdf2image)")
+            
+            if docx_files:
+                if DOCX_SUPPORT:
+                    print(f"📄 Xử lý {len(docx_files)} DOCX với Vertex AI...")
+                    # Xử lý DOCX tuần tự vì có convert step
+                    for docx_file in docx_files:
+                        single_file_mode_vertex_ai(docx_file)
+                else:
+                    print(f"❌ Bỏ qua {len(docx_files)} DOCX (cần cài docx2pdf)")
                     
     elif mode == 2:
         # Mode 2: Mathpix OCR + Q&A Mapping

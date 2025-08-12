@@ -207,5 +207,5 @@ backup/
 test_*.py
 *_test.py
 
-history/
+.history/
 data/prompt/
