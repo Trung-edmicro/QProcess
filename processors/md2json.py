@@ -79,24 +79,45 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> tuple[str, str |
         # BƯỚC 2: TẢI ẢNH, MÃ HÓA BASE64 VÀ TẠO MAPPING THAY THẾ
         base64_replacement_mapping = {}
         if image_url_mapping:
-            print(f"Tìm thấy {len(image_url_mapping)} ảnh. Đang tải và mã hóa sang Base64...")
-            for placeholder, url in image_url_mapping.items():
+            print(f"Tìm thấy {len(image_url_mapping)} ảnh. Đang xử lý...")
+            # Đổi tên biến 'url' thành 'path_or_url' cho rõ ràng
+            for placeholder, path_or_url in image_url_mapping.items():
                 try:
-                    # Tải nội dung ảnh từ URL
-                    response = requests.get(url, timeout=20)
-                    response.raise_for_status()  # Báo lỗi nếu request không thành công
-                    image_bytes = response.content
+                    image_bytes = None
+                    
+                    # PHÂN BIỆT URL VÀ ĐƯỜNG DẪN CỤC BỘ
+                    if path_or_url.lower().startswith('http://') or path_or_url.lower().startswith('https://'):
+                        # TRƯỜNG HỢP 1: ĐÂY LÀ URL -> DÙNG REQUESTS
+                        print(f"  {placeholder}: Đang tải từ URL {path_or_url}...")
+                        response = requests.get(path_or_url, timeout=20)
+                        response.raise_for_status()  # Báo lỗi nếu request không thành công
+                        image_bytes = response.content
+                    else:
+                        # TRƯỜNG HỢP 2: ĐÂY LÀ ĐƯỜNG DẪN FILE TRÊN MÁY
+                        print(f"  {placeholder}: Đang đọc từ đường dẫn file {path_or_url}...")
+                        if not os.path.exists(path_or_url):
+                            raise FileNotFoundError(f"Tệp không tồn tại tại '{path_or_url}'")
+                        
+                        # Mở và đọc file ở chế độ nhị phân ('rb')
+                        with open(path_or_url, 'rb') as image_file:
+                            image_bytes = image_file.read()
 
+                    # --- PHẦN XỬ LÝ CHUNG SAU KHI ĐÃ CÓ image_bytes ---
+                    
                     # Mã hóa sang Base64
                     base64_encoded_data = base64.b64encode(image_bytes).decode('utf-8')
                     
                     # Xác định Mime Type (loại ảnh)
+                    # Dùng os.path.splitext để lấy phần mở rộng file chính xác hơn
+                    _, extension = os.path.splitext(path_or_url.lower())
                     mime_type = "image/jpeg" # Mặc định
-                    if ".png" in url.lower():
+                    if extension == ".png":
                         mime_type = "image/png"
-                    elif ".gif" in url.lower():
+                    elif extension == ".gif":
                         mime_type = "image/gif"
-                    
+                    elif extension == ".svg":
+                        mime_type = "image/svg+xml"
+
                     # Tạo thẻ <img> HTML hoàn chỉnh
                     html_tag = f'<img src="data:{mime_type};base64,{base64_encoded_data}" alt="" style="max-width: 100%;">'
                     
@@ -104,10 +125,11 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> tuple[str, str |
                     base64_replacement_mapping[placeholder] = html_tag
                     print(f"  {placeholder}: Đã mã hóa thành công.")
                 
-                except requests.exceptions.RequestException as e:
-                    print(f"  LỖI với {placeholder}: Không thể tải ảnh từ {url}. Lỗi: {e}")
+                # Bắt cả lỗi mạng và lỗi file
+                except (requests.exceptions.RequestException, IOError, FileNotFoundError) as e:
+                    print(f"  LỖI với {placeholder}: Không thể xử lý ảnh từ '{path_or_url}'. Lỗi: {e}")
                     # Nếu lỗi, giữ lại một thông báo lỗi trong mapping
-                    base64_replacement_mapping[placeholder] = f"[LỖI KHI TẢI VÀ MÃ HÓA ẢNH: {url}]"
+                    base64_replacement_mapping[placeholder] = f"[LỖI KHI XỬ LÝ ẢNH: {path_or_url}]"
 
         # ... (Phần prompt và gọi AI giữ nguyên) ...
         # 3. Cập nhật prompt cho model chỉ xử lý văn bản

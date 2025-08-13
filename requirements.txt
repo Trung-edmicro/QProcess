@@ -13,7 +13,7 @@ requests>=2.31.0
 
 # Environment management
 python-dotenv>=1.0.0
-
+aspose-words
 # Optional: For better PDF processing on Windows
 # Note: Also requires poppler-utils installation
 # Windows: choco install poppler

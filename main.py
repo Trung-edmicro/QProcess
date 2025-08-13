@@ -543,7 +543,7 @@ def ocr_single_image_mathpix(image_path, index=None, show_result=False):
         # Gọi Mathpix API
         result = app_config.mathpix.ocr_image(image_path, mathpix_options)
         
-        diagram_files = save_diagrams_from_line_data(image_path, result, base_outdir="data\diagrams")
+        diagram_files = save_diagrams_from_line_data(image_path, result, base_outdir=r"data\diagrams")
 
         if diagram_files:
             print(f"🖼️ Đã lưu {len(diagram_files)} hình diagram vào:", os.path.dirname(diagram_files[0]["path"]))
