@@ -1,11 +1,12 @@
-"""
-Question Answer Mapper - Version đơn giản
-Chỉ gửi nội dung file .md cho AI và nhận kết quả
-"""
 import os
+import sys
 from datetime import datetime
 from config.vertex_ai_config import VertexAIConfig
 from vertexai.generative_models import GenerativeModel, GenerationConfig
+
+# Import prompts từ data/prompt
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'data', 'prompt'))
+from data.prompt.prompts import QUESTION_ANSWER_MAPPING
 
 class QuestionAnswerMapper:
     """Class đơn giản để mapping câu hỏi với lời giải bằng AI"""
@@ -49,33 +50,8 @@ class QuestionAnswerMapper:
             return None
         
         try:
-            prompt = f"""
-            Bạn là trợ lý biên tập tài liệu.  
-            Nhiệm vụ: Đọc toàn bộ nội dung sau, ghép **mỗi câu hỏi** với **lời giải chi tiết** tương ứng.  
-
-            **Với phần định dạng bắt buộc:**
-            ```
-            **Phần (nếu là tiếng Anh thay Phần -> Part) [Số/Kí tự la mã]:** [Nguyên văn nội dung phần]
-            ```
-
-            **Với định dạng câu hỏi và lời giải bắt buộc cho mỗi cặp:**
-            ```
-            **Câu (nếu là tiếng Anh thay Câu -> Question) [Số]:** [Nguyên văn câu hỏi + các đáp án A, B, C, D...]   
-            Lời giải   
-            [Nguyên văn lời giải chi tiết tương ứng]
-            ```
-
-            **Quy tắc bắt buộc:**
-            1. Hãy giữ nguyên toàn bộ nội dung gốc của phần, câu hỏi và lời giải, bao gồm số thứ tự, nội dung, ký hiệu, công thức…
-            2. Nếu có bảng đang ở dạng Markdown hay mã Latex thì bắt buộc chuyển đổi sang dạng mã HTML (không cần style).
-            3. Không lược bỏ hay thay đổi nội dung quan trọng.  
-            4. Lọc nội dung Lời giải và ghép vào câu hỏi tương ứng. Tuyệt đối tự ý bịa thêm lời giải hoặc thông tin ngoài nguồn.  
-            5. Không thêm câu dẫn hoặc mô tả ngoài định dạng yêu cầu.  
-            6. Xử lý tất cả câu hỏi có trong tài liệu, theo đúng thứ tự xuất hiện.
-
-            Nội dung cần xử lý:  
-            {content}
-            """
+            # Sử dụng prompt từ file data/prompt/prompts.py
+            prompt = QUESTION_ANSWER_MAPPING.format(content=content)
             
             # Gửi cho AI
             print(f"🤖 Đang gửi {len(content):,} ký tự cho AI...")

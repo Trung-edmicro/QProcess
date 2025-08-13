@@ -1,7 +1,5 @@
-import os
-import sys
+﻿import os
 import time
-import re
 import traceback
 import multiprocessing as mp
 from config import app_config
@@ -10,8 +8,9 @@ from vertexai.generative_models import GenerativeModel, Part, GenerationConfig
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from processors import QuestionAnswerMapper
 from processors.image_processor import save_diagrams_from_line_data, insert_diagrams_into_text
+from processors.md2json import process_markdown_with_vertex_ai
+from data.prompt.prompts import VERTEX_AI_OCR
 
-# PDF processing imports for Mode 1
 try:
     from pdf2image import convert_from_path
     import tempfile
@@ -21,7 +20,6 @@ except ImportError:
     print("⚠️ PDF support cho Mode 1 không khả dụng. Cài đặt: pip install pdf2image")
     print("⚠️ Và cài đặt poppler-utils (Windows: choco install poppler)")
 
-# DOCX processing imports
 try:
     import aspose.words as aw
     import shutil
@@ -29,6 +27,31 @@ try:
 except ImportError:
     DOCX_SUPPORT = False
     print("⚠️ DOCX support không khả dụng. Cài đặt: pip install aspose-words")
+
+def convert_md_to_json_final(md_file_path: str) -> str:
+    """
+    Wrapper function để chuyển đổi MD thành JSON sử dụng logic từ md2json.py
+    
+    Args:
+        md_file_path: Đường dẫn file .md cần chuyển đổi
+        
+    Returns:
+        Đường dẫn file JSON đã tạo hoặc None nếu lỗi
+    """
+    try:
+        print(f"🔄 Đang chuyển đổi MD sang JSON: {os.path.basename(md_file_path)}")
+        result = process_markdown_with_vertex_ai(md_file_path)
+        
+        if result[1]:  # result[1] là đường dẫn JSON output
+            print(f"✅ Đã tạo JSON: {os.path.basename(result[1])}")
+            return result[1]
+        else:
+            print(f"❌ Lỗi khi chuyển đổi {os.path.basename(md_file_path)} sang JSON")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Lỗi không xác định khi chuyển đổi MD sang JSON: {str(e)}")
+        return None
 
 def convert_pdf_to_images(pdf_path, dpi=200):
     """
@@ -299,122 +322,8 @@ def ocr_single_pdf_vertex_ai(pdf_path, index=None, show_result=False):
             return (index, None, pdf_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
-            import traceback
             traceback.print_exc()
             return (None, False, error_msg)
-
-def ocr_multiple_pdfs_vertex_ai(input_folder, output_folder):
-    """Xử lý OCR nhiều PDF với Vertex AI - Mode 1"""
-    print("=== BATCH OCR MULTIPLE PDFs VỚI VERTEX AI (MODE 1) ===")
-    
-    # Kiểm tra PDF support
-    if not PDF_SUPPORT:
-        print("❌ PDF support không khả dụng. Cần cài đặt: pip install pdf2image")
-        print("   Và cài đặt poppler-utils (xem hướng dẫn: https://pypi.org/project/pdf2image/)")
-        return
-    
-    # Kiểm tra thư mục input
-    if not os.path.exists(input_folder):
-        print(f"❌ Thư mục input không tồn tại: {input_folder}")
-        return
-    
-    # Tạo thư mục output
-    os.makedirs(output_folder, exist_ok=True)
-    
-    # Tìm tất cả file PDF
-    pdf_files = [f for f in os.listdir(input_folder) if f.lower().endswith('.pdf')]
-    
-    if not pdf_files:
-        print(f"❌ Không tìm thấy file PDF nào trong: {input_folder}")
-        return
-    
-    print(f"📄 Tìm thấy {len(pdf_files)} file PDF")
-    print(f"📁 Kết quả sẽ được lưu tại: {output_folder}")
-    
-    # Tạo list paths
-    pdf_paths = [os.path.join(input_folder, pdf_file) for pdf_file in pdf_files]
-    
-    start_time = time.time()
-    
-    # Xử lý song song
-    with ProcessPoolExecutor(max_workers=mp.cpu_count()) as executor:
-        print(f"🚀 Bắt đầu xử lý song song với {mp.cpu_count()} process...")
-        
-        # Submit jobs với index
-        futures = {
-            executor.submit(ocr_single_pdf_vertex_ai, pdf_path, i): (i, pdf_path) 
-            for i, pdf_path in enumerate(pdf_paths)
-        }
-        
-        # Thu thập kết quả
-        results = []
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                results.append(result)
-            except Exception as e:
-                i, pdf_path = futures[future]
-                print(f"❌ [Process {i}] Exception: {str(e)}")
-                results.append((i, None, pdf_path, False, str(e)))
-    
-    # Sắp xếp kết quả theo index
-    results.sort(key=lambda x: x[0])
-    
-    # Tạo file tổng hợp
-    combined_results = []
-    successful_count = 0
-    failed_files = []
-    
-    for i, result_text, pdf_path, success, error_msg in results:
-        filename = os.path.basename(pdf_path)
-        
-        if success and result_text:
-            successful_count += 1
-            combined_results.append(f"# {filename}\n\n{result_text}")
-            
-            # Lưu file riêng lẻ
-            individual_output = os.path.join(output_folder, f"{os.path.splitext(filename)[0]}_processed.md")
-            with open(individual_output, 'w', encoding='utf-8') as f:
-                f.write(result_text)
-            print(f"✅ [File {i+1}] Đã lưu: {os.path.basename(individual_output)}")
-        else:
-            failed_files.append((filename, error_msg or "Unknown error"))
-            print(f"❌ [File {i+1}] Lỗi {filename}: {error_msg}")
-    
-    # Lưu file tổng hợp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    combined_output_file = os.path.join(output_folder, f"ocr_multiple_pdfs_{timestamp}_processed.md")
-    
-    with open(combined_output_file, 'w', encoding='utf-8') as f:
-        f.write("# Kết quả OCR Multiple PDFs (Vertex AI)\n\n")
-        f.write(f"**Thời gian xử lý:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"**Mode:** Vertex AI (Google Gemini 2.5-pro)\n")
-        f.write(f"**Tổng files:** {len(pdf_files)}\n")
-        f.write(f"**Thành công:** {successful_count}\n")
-        f.write(f"**Thất bại:** {len(failed_files)}\n\n")
-        
-        if failed_files:
-            f.write("## ❌ Files thất bại:\n\n")
-            for filename, error in failed_files:
-                f.write(f"- **{filename}**: {error}\n")
-            f.write("\n")
-        
-        f.write("---\n\n")
-        f.write("\n\n".join(combined_results))
-    
-    end_time = time.time()
-    processing_time = end_time - start_time
-    
-    print("\n" + "="*60)
-    print("📊 TỔNG KẾT BATCH OCR PDFs (VERTEX AI)")
-    print("="*60)
-    print(f"📄 Tổng files PDF: {len(pdf_files)}")
-    print(f"✅ Thành công: {successful_count}")
-    print(f"❌ Thất bại: {len(failed_files)}")
-    print(f"⏱️ Thời gian xử lý: {processing_time:.2f} giây")
-    print(f"⚡ Tốc độ trung bình: {processing_time/len(pdf_files):.2f} giây/file")
-    print(f"📁 File tổng hợp: {os.path.basename(combined_output_file)}")
-    print("="*60)
 
 def ocr_single_image(image_path, index=None, show_result=False):
     """
@@ -474,23 +383,7 @@ def ocr_single_image(image_path, index=None, show_result=False):
         if index is None:
             print(f"✅ Đã tạo image part với mime type: {mime_type}")
         
-        # Tạo prompt cho OCR
-        text_prompt = """
-        Hãy đọc và trích xuất toàn bộ text từ ảnh này. 
-        Yêu cầu chung:
-        1. Đọc chính xác tất cả text có trong ảnh
-        2. Giữ nguyên format và cấu trúc của text
-        3. Nếu có công thức toán học, hãy chuyển sang định dạng LaTeX
-        4. Bỏ qua bảng, hình ảnh, biểu đồ, v.v...
-        5. Trả về kết quả chỉ gồm nội dung OCR được, không cần giải thích hay bình luận gì thêm.
-        
-        Yêu cầu cụ thể:
-        1. Trường hợp ảnh có kí tự đặc biệt (như chữ ký, hình vẽ tay) thì không trả về ở kết quả.
-        2. Với ảnh là đề thi thì cần loại bỏ các phần không liên quan như thông tin trường/học sinh, hướng dẫn, số trang, mã đề.
-        3. Vì là nội dung OCR liên quan đến các câu hỏi nên cần đảm bảo có các phần tiêu đề, câu hỏi, đáp án rõ ràng và được in đậm tên phần (**Phần I.{nội dung}**), số câu (**Câu 1:**).
-        """
-        
-        text_part = Part.from_text(text_prompt)
+        text_part = Part.from_text(VERTEX_AI_OCR)
         
         # Tạo generation config
         generation_config = GenerationConfig(
@@ -574,20 +467,8 @@ def ocr_single_image(image_path, index=None, show_result=False):
             return (index, None, image_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
-            import traceback
             traceback.print_exc()
             return (None, False, error_msg)
-
-def process_single_image(image_info):
-    """
-    Wrapper cho multiprocessing - gọi ocr_single_image
-    Args:
-        image_info: tuple (index, image_path)
-    Returns:
-        tuple (index, result_text, image_path, success, error_msg)
-    """
-    index, image_path = image_info
-    return ocr_single_image(image_path, index=index, show_result=False)
 
 def ocr_single_image_mathpix(image_path, index=None, show_result=False):
     """
@@ -641,7 +522,7 @@ def ocr_single_image_mathpix(image_path, index=None, show_result=False):
                 print(f"💡 Các format được hỗ trợ: {supported}")
                 return (None, False, error_msg)
         
-        # Tùy chọn OCR cho đề thi/toán học
+        # Tùy chọn OCR
         mathpix_options = {
             "formats": ["mmd"],
             "math_inline_delimiters": ["$", "$"],
@@ -662,7 +543,7 @@ def ocr_single_image_mathpix(image_path, index=None, show_result=False):
         # Gọi Mathpix API
         result = app_config.mathpix.ocr_image(image_path, mathpix_options)
         
-        diagram_files = save_diagrams_from_line_data(image_path, result, base_outdir="data/diagrams")
+        diagram_files = save_diagrams_from_line_data(image_path, result, base_outdir="data\diagrams")
 
         if diagram_files:
             print(f"🖼️ Đã lưu {len(diagram_files)} hình diagram vào:", os.path.dirname(diagram_files[0]["path"]))
@@ -712,7 +593,6 @@ def ocr_single_image_mathpix(image_path, index=None, show_result=False):
             return (index, None, image_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
-            import traceback
             traceback.print_exc()
             return (None, False, error_msg)
 
@@ -845,7 +725,6 @@ def ocr_single_pdf_mathpix(pdf_path, index=None, show_result=False):
             return (index, None, pdf_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
-            import traceback
             traceback.print_exc()
             return (None, False, error_msg)
 
@@ -859,98 +738,6 @@ def process_single_image_mathpix(image_info):
     """
     index, image_path = image_info
     return ocr_single_image_mathpix(image_path, index=index, show_result=False)
-
-def ocr_single_pdf_mathpix(pdf_path, index=None, show_result=False):
-    """
-    Xử lý OCR một file PDF bằng Mathpix API - Mode 2
-    Args:
-        pdf_path: đường dẫn file PDF
-        index: index của file (cho multiprocessing), None cho single mode
-        show_result: có hiển thị kết quả chi tiết không (cho single mode)
-    Returns:
-        tuple (result_text, success, error_msg) cho single mode
-        tuple (index, result_text, pdf_path, success, error_msg) cho multiprocessing
-    """
-    try:
-        # Xác định prefix cho log messages
-        prefix = f"[Process {index}]" if index is not None else ""
-        
-        if index is not None:
-            print(f"🔄 {prefix} Bắt đầu xử lý PDF (Mathpix): {os.path.basename(pdf_path)}")
-        else:
-            print("=== TEST OCR PDF VỚI MATHPIX API ===")
-            print(f"📄 Đang xử lý PDF: {os.path.basename(pdf_path)}")
-        
-        # Kiểm tra cấu hình Mathpix
-        if not app_config.mathpix.is_configured():
-            error_msg = "Mathpix API chưa được cấu hình!"
-            if index is not None:
-                return (index, None, pdf_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                print("💡 Hãy thiết lập MATHPIX_APP_ID và MATHPIX_APP_KEY trong .env")
-                return (None, False, error_msg)
-        
-        if index is None:
-            print("✅ Mathpix API đã được cấu hình")
-        
-        # Kiểm tra file có tồn tại và được hỗ trợ
-        if not os.path.exists(pdf_path):
-            error_msg = f"File không tồn tại: {pdf_path}"
-            if index is not None:
-                return (index, None, pdf_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                return (None, False, error_msg)
-        
-        if not app_config.mathpix.is_supported_pdf(pdf_path):
-            error_msg = f"File không phải PDF: {pdf_path}"
-            if index is not None:
-                return (index, None, pdf_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                return (None, False, error_msg)
-        
-        if index is None:
-            print("🔄 Đang xử lý PDF với Mathpix API...")
-        
-        # Gọi Mathpix PDF API
-        result_text = app_config.mathpix.process_pdf(pdf_path, timeout=120)
-        
-        if result_text:
-            # Post-process kết quả để phù hợp với format đề thi
-            processed_text = post_process_mathpix_result({'text': result_text})
-            
-            if index is not None:
-                print(f"✅ {prefix} Hoàn thành PDF: {os.path.basename(pdf_path)}")
-                return (index, processed_text, pdf_path, True, None)
-            else:
-                print("✅ Đã nhận được kết quả OCR PDF từ Mathpix!")
-                if show_result:
-                    print("\n" + "="*60)
-                    print("📄 KẾT QUẢ OCR PDF (MATHPIX):")
-                    print("="*60)
-                    print(processed_text[:500] + "..." if len(processed_text) > 500 else processed_text)
-                    print("="*60)
-                return (processed_text, True, None)
-        else:
-            error_msg = "Không nhận được kết quả từ Mathpix PDF API"
-            if index is not None:
-                return (index, None, pdf_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                return (None, False, error_msg)
-                
-    except Exception as e:
-        error_msg = f"Lỗi khi xử lý PDF với Mathpix {pdf_path}: {str(e)}"
-        if index is not None:
-            print(f"❌ {prefix} {error_msg}")
-            return (index, None, pdf_path, False, error_msg)
-        else:
-            print(f"❌ {error_msg}")
-            import traceback
-            traceback.print_exc()
-            return (None, False, error_msg)
 
 def process_single_file_mathpix(file_info):
     """
@@ -1003,8 +790,8 @@ def process_multiple_images(image_paths, max_workers=None):
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             # Submit tất cả tasks
             future_to_info = {
-                executor.submit(process_single_image, info): info 
-                for info in image_info_list
+                executor.submit(ocr_single_image, image_path, index): (index, image_path) 
+                for index, image_path in image_info_list
             }
             
             # Collect results khi hoàn thành
@@ -1151,12 +938,6 @@ def process_multiple_files_mathpix(file_paths, max_workers=None):
     
     return results
 
-def process_multiple_images_mathpix(image_paths, max_workers=None):
-    """
-    Wrapper để maintain backward compatibility
-    """
-    return process_multiple_files_mathpix(image_paths, max_workers)
-
 def save_multiple_results_to_markdown(results, output_folder):
     """
     Lưu tất cả kết quả OCR thành một file markdown tổng hợp với template lời giải
@@ -1188,12 +969,23 @@ def save_multiple_results_to_markdown(results, output_folder):
                     f.write(f"### 📷 Ảnh {result['index'] + 1}: `{os.path.basename(result['image_path'])}`\n\n")
                     f.write(f"**Lỗi:** {result['error_msg']}\n\n")
             
+        print(f"✅ Đã lưu file MD: {os.path.basename(output_file)}")
+        
+        # Chuyển đổi MD sang JSON
+        try:
+            json_file = convert_md_to_json_final(output_file)
+            if json_file:
+                print(f"✅ Hoàn thành pipeline: MD → JSON")
+            else:
+                print(f"⚠️ Không thể chuyển đổi sang JSON")
+        except Exception as json_error:
+            print(f"⚠️ Lỗi khi chuyển đổi sang JSON: {str(json_error)}")
+        
         print(f"✅ Đã xử lý và lưu kết quả OCR")
         return output_file
         
     except Exception as e:
         print(f"❌ Lỗi khi lưu file markdown tổng hợp: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
@@ -1228,18 +1020,29 @@ def save_multiple_results_to_markdown_mathpix(results, output_folder):
                     f.write(f"### 📷 Ảnh {result['index'] + 1}: `{os.path.basename(result['image_path'])}`\n\n")
                     f.write(f"**Lỗi:** {result['error_msg']}\n\n")
             
+        print(f"✅ Đã lưu file MD: {os.path.basename(output_file)}")
+        
+        # Chuyển đổi MD sang JSON
+        try:
+            json_file = convert_md_to_json_final(output_file)
+            if json_file:
+                print(f"✅ Hoàn thành pipeline: MD → JSON")
+            else:
+                print(f"⚠️ Không thể chuyển đổi sang JSON")
+        except Exception as json_error:
+            print(f"⚠️ Lỗi khi chuyển đổi sang JSON: {str(json_error)}")
+        
         print(f"✅ Đã xử lý và lưu kết quả OCR (Mathpix)")
         return output_file
         
     except Exception as e:
         print(f"❌ Lỗi khi lưu file markdown tổng hợp Mathpix: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
 def save_single_result_to_markdown_mathpix(result_text, image_path, output_folder):
     """
-    Lưu kết quả OCR Mathpix đơn lẻ thành file markdown
+    Lưu kết quả OCR Mathpix đơn lẻ thành file markdown và chuyển đổi sang JSON
     Args:
         result_text: nội dung OCR
         image_path: đường dẫn ảnh gốc
@@ -1255,11 +1058,22 @@ def save_single_result_to_markdown_mathpix(result_text, image_path, output_folde
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(result_text)
         
+        print(f"✅ Đã lưu file MD: {os.path.basename(output_file)}")
+        
+        # Chuyển đổi MD sang JSON
+        try:
+            json_file = convert_md_to_json_final(output_file)
+            if json_file:
+                print(f"✅ Hoàn thành pipeline: MD → JSON")
+            else:
+                print(f"⚠️ Không thể chuyển đổi sang JSON")
+        except Exception as json_error:
+            print(f"⚠️ Lỗi khi chuyển đổi sang JSON: {str(json_error)}")
+        
         return output_file
         
     except Exception as e:
         print(f"❌ Lỗi khi lưu file markdown đơn lẻ Mathpix: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
@@ -1348,7 +1162,6 @@ def process_single_docx_vertex_ai(docx_path, index=None, show_result=False):
             return (index, None, docx_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
-            import traceback
             traceback.print_exc()
             return (None, False, error_msg)
 
@@ -1416,7 +1229,6 @@ def process_single_docx_mathpix(docx_path, index=None, show_result=False):
             return (index, None, docx_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
-            import traceback
             traceback.print_exc()
             return (None, False, error_msg)
 
@@ -1579,7 +1391,7 @@ def save_individual_results(results, output_folder):
     print(f"💾 Đã lưu {successful_count} file kết quả riêng lẻ")
 
 def save_ocr_result_to_markdown(result_text, image_path, output_folder):
-    """Lưu kết quả OCR thành file markdown với format đẹp"""
+    """Lưu kết quả OCR thành file markdown và chuyển đổi sang JSON"""
     try:
         # Tạo tên file với timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1589,11 +1401,23 @@ def save_ocr_result_to_markdown(result_text, image_path, output_folder):
         # Ghi nội dung vào file markdown
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(result_text)
+        
+        print(f"✅ Đã lưu file MD: {os.path.basename(output_file)}")
+        
+        # Chuyển đổi MD sang JSON
+        try:
+            json_file = convert_md_to_json_final(output_file)
+            if json_file:
+                print(f"✅ Hoàn thành pipeline: MD → JSON")
+            else:
+                print(f"⚠️ Không thể chuyển đổi sang JSON")
+        except Exception as json_error:
+            print(f"⚠️ Lỗi khi chuyển đổi sang JSON: {str(json_error)}")
+        
         return output_file
         
     except Exception as e:
         print(f"❌ Lỗi khi lưu file markdown: {e}")
-        import traceback
         traceback.print_exc()
         return None
 
@@ -1708,6 +1532,36 @@ def multiple_pdfs_mode_vertex_ai(pdf_paths, max_workers):
     print(f"⚡ Tốc độ trung bình: {processing_time/len(pdf_paths):.2f} giây/file")
     print("="*60)
 
+def save_mapping_result(mapped_content, input_filename, mode_name):
+    """
+    Lưu kết quả mapping vào file riêng trong thư mục output
+    Args:
+        mapped_content: Nội dung đã được mapping
+        input_filename: Tên file input gốc
+        mode_name: Tên mode xử lý
+    Returns:
+        str: Đường dẫn file đã lưu hoặc None nếu lỗi
+    """
+    try:
+        # Tạo tên file với timestamp và mode
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = os.path.splitext(input_filename)[0]
+        mode_short = "vertex" if "Vertex" in mode_name else "mathpix"
+        filename = f"{base_name}_{mode_short}_mapped_{timestamp}.md"
+        
+        output_file = os.path.join(app_config.output_folder, filename)
+        
+        # Ghi nội dung vào file
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(mapped_content)
+        
+        print(f"💾 Đã lưu kết quả mapping: {os.path.basename(output_file)}")
+        return output_file
+        
+    except Exception as e:
+        print(f"⚠️ Lỗi khi lưu kết quả mapping: {str(e)}")
+        return None
+
 def post_process_with_mapping(content, input_filename, mode_name):
     """
     Xử lý nội dung sau OCR để mapping câu hỏi với lời giải
@@ -1744,6 +1598,10 @@ def post_process_with_mapping(content, input_filename, mode_name):
         if mapped_content:
             print(f"✅ Mapping thành công! ({processing_time:.2f}s)")
             print(f"📏 Kết quả: {len(mapped_content):,} ký tự")
+            
+            # Lưu kết quả mapping vào file riêng
+            save_mapping_result(mapped_content, input_filename, mode_name)
+            
             return mapped_content
         else:
             print(f"❌ Mapping thất bại ({processing_time:.2f}s)")

@@ -20,19 +20,15 @@ QProcess là hệ thống OCR hỗ trợ **2 modes** xử lý:
 
 ```
 QProcess/
-├── main.py                    # File chính - chọn mode
-├── test_mathpix_mode.py       # Test riêng Mode 2
-├── test_mathpix_image.py      # Test API Mathpix
+├── main.py                    # File chính
 ├── config/
 │   ├── app_config.py          # Cấu hình tổng
 │   ├── vertex_ai_config.py    # Cấu hình Vertex AI
 │   ├── mathpix_config.py      # Cấu hình Mathpix
-│   └── mathpix_docs.txt       # Documentation
-├── processors/
-│   └── exam_processor.py      # Xử lý template lời giải
+├── processors/                # Xử lý
 └── data/
-    ├── input/                 # Ảnh/PDF input
-    └── output/                # Kết quả .md
+    ├── input/                 # Ảnh/PDF/DOCX input
+    └── output/                # Kết quả .md & json
 ```
 
 ## ⚙️ Cấu hình Environment

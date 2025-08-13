@@ -11,7 +11,7 @@ def _clamp_bbox(bbox, w, h):
     if b <= t: b = min(h, t + 1)
     return (l, t, r, b)
 
-def save_diagrams_from_line_data(image_path, result, base_outdir="data/diagrams"):
+def save_diagrams_from_line_data(image_path, result, base_outdir="data\diagrams"):
     """
     Quét result['line_data'] -> crop tất cả vùng type=='diagram' theo polygon `cnt`.
     Trả về: list[dict] gồm id, path, bbox, polygon.

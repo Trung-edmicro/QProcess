@@ -14,9 +14,6 @@ requests>=2.31.0
 # Environment management
 python-dotenv>=1.0.0
 
-# Database (if needed for future features)
-SQLAlchemy>=2.0.0
-
 # Optional: For better PDF processing on Windows
 # Note: Also requires poppler-utils installation
 # Windows: choco install poppler
