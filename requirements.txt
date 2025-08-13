@@ -3,24 +3,20 @@
 # ========================================
 
 # Core Google Cloud & AI Dependencies
-google-cloud-aiplatform>=1.50.0
-vertexai>=1.50.0
-google-auth>=2.20.0
-google-oauth2-tool>=0.0.3
-
+google-cloud-aiplatform
+vertexai
+google-auth
+google-oauth2-tool
 # Image & Document Processing
-Pillow>=10.0.0
-pdf2image>=3.1.0
-
+Pillow
+pdf2image
 # Web Requests & API Calls
-requests>=2.31.0
+requests
 
 # Environment & Configuration
-python-dotenv>=1.0.0
-
+python-dotenv
 # Database (for some configs)
-sqlalchemy>=2.0.0
-
+sqlalchemy
 # ========================================
 # External Tools Required (Not pip packages)
 # ========================================
