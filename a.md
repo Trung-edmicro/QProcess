@@ -2,42 +2,36 @@
     "questions": [
         {
             "isHL": false,
-            "content": "Virus có thể sống và sinh sản trong môi trường nào?",
+            "content": "Virus có **thể sống và sinh** sản trong môi trường nào?",
             "index": 0,
             "numberId": 1,
             "indexPart": 0,
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
-                    "content": "Môi trường tự nhiên",
+                    "content": "Môi *trường tự nhiên*",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Bên trong tế bào vật chủ",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Trong nước",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Trên bề mặt cơ thể sinh vật",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -51,35 +45,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Cơ thể đơn bào hoặc đa bào đơn giản",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Có nhân thật",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Luôn có khả năng quang hợp",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Sinh sản vô tính hoặc hữu tính",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -93,35 +81,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Roi bơi",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Lông bơi",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Chân giả",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Không có khả năng di chuyển",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -135,35 +117,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Truyền qua vết cắn của muỗi Anopheles",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Qua đường hô hấp",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Qua nguồn nước bẩn",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Qua tiếp xúc trực tiếp",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -177,35 +153,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Trùng giày",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Vi khuẩn",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Nấm men",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Cây bèo tấm",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -219,35 +189,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Cấu tạo từ sợi nấm, không có diệp lục",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Có khả năng tự dưỡng như thực vật",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Luôn sống ký sinh trên sinh vật khác",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Có diệp lục, quang hợp để tạo chất hữu cơ",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -261,35 +225,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Nấm rơm",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Nấm hương",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Nấm Candida",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Nấm mốc xanh",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -303,35 +261,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Thú, chim, bò sát, lưỡng cư, cá",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Thú, chim, bò sát, côn trùng",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Thú, bò sát, giun, cá",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Cá, lưỡng cư, chim, thân mềm",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -345,35 +297,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Cá chép",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Bọ cạp",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Chim sẻ",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Ếch",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -387,35 +333,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 3
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Để giữ gìn nguồn gen quý",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Để cân bằng hệ sinh thái",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Để phát triển kinh tế bền vững",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Để có nhiều tài nguyên hơn để săn bắt phục vụ cuộc sống",
                     "index": 3,
-                    "isAnswer": true,
                     "optionLabel": "D"
                 }
             ]
@@ -429,35 +369,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Cung cấp nguồn thực phẩm",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Bảo vệ các loài sinh vật quý hiếm",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Phát triển du lịch thương mại",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Tăng năng suất nông nghiệp",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -471,35 +405,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Thay đổi khí hậu",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Hoạt động của con người",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Sự cạnh tranh giữa các loài",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Thiếu nguồn nước ngọt",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -513,35 +441,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Có cấu tạo tế bào",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Không có cấu tạo tế bào",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Tự sinh sản không cần vật chủ",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Chỉ có thể tồn tại trong cơ thể động vật",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -555,35 +477,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Không có nhân tế bào",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Không có màng tế bào",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Không có diệp lục",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Không có bào quan",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -597,35 +513,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Môi trường đất khô",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Môi trường nước hoặc ký sinh trong cơ thể sinh vật khác",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Môi trường có nhiệt độ cao",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Môi trường không có oxy",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -639,35 +549,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 3
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Trùng roi",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Trùng biến hình",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Trùng kiết lỵ",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Trùng sốt rét",
                     "index": 3,
-                    "isAnswer": true,
                     "optionLabel": "D"
                 }
             ]
@@ -681,35 +585,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Chân giả",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Diệp lục",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Không bào",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Không có khả năng tự dưỡng",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -723,35 +621,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Tự tổng hợp chất hữu cơ",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Có diệp lục",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Sống hoại sinh hoặc ký sinh",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Có khả năng quang hợp",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -765,35 +657,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Phân hủy chất hữu cơ",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Tổng hợp chất hữu cơ",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Làm thức ăn cho động vật ăn cỏ",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Sản xuất oxy",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -807,35 +693,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 0
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Cá, lưỡng cư, bò sát, chim, thú",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Cá, côn trùng, động vật nguyên sinh",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Giun, thân mềm, chân khớp, động vật có xương sống",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Giun đốt, nhuyễn thể, động vật có xương sống",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -849,35 +729,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Sứa",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Bạch tuộc",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Nhện",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Giun đất",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -891,35 +765,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Vi khuẩn",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Động vật không xương sống",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Thực vật có hoa",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Động vật có xương sống",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -933,35 +801,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 1
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Giảm thiểu ô nhiễm môi trường",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Duy trì cân bằng sinh thái",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Làm tăng sự suy giảm các loài",
                     "index": 2,
-                    "isAnswer": false,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Gây ảnh hưởng tiêu cực đến môi trường",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -975,35 +837,29 @@
             "typeAnswer": "0",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
                 2
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Phá rừng",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Ô nhiễm môi trường",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Bảo vệ sinh vật quý hiếm",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Săn bắt động vật hoang dã",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -1017,36 +873,32 @@
             "typeAnswer": "1",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
-                1,
-                2
+                "false",
+                "true",
+                "true",
+                "false"
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Thực vật có hoa luôn sinh sản bằng hạt",
                     "index": 0,
-                    "isAnswer": false,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Tất cả thực vật đều có khả năng quang hợp",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Một số loài cây có thể sống trong môi trường nước mặn",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Rễ cây chỉ có chức năng hút nước và muối khoáng",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -1060,36 +912,32 @@
             "typeAnswer": "1",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
-                0,
-                2
+                "true",
+                "false",
+                "true",
+                "false"
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Động vật có thể sống trong nhiều môi trường khác nhau",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Tất cả động vật đều có hệ thần kinh",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Một số loài động vật có thể tự tái sinh bộ phận cơ thể bị mất",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Tất cả động vật có xương sống đều đẻ con",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -1103,37 +951,32 @@
             "typeAnswer": "1",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
-                0,
-                2,
-                3
+                "true",
+                "false",
+                "true",
+                "true"
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Lá cây giúp thực hiện quá trình quang hợp",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Thực vật có thể di chuyển đến nơi có ánh sáng mạnh hơn",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Một số cây có khả năng thích nghi với môi trường khô hạn bằng cách giảm số lượng khí khổng",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Một số loại cây có thể thay đổi màu lá theo mùa",
                     "index": 3,
-                    "isAnswer": true,
                     "optionLabel": "D"
                 }
             ]
@@ -1147,38 +990,32 @@
             "typeAnswer": "1",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
-                0,
-                1,
-                2,
-                3
+                "true",
+                "true",
+                "true",
+                "true"
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Động vật có xương sống có hệ thần kinh phát triển hơn động vật không xương sống",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Một số loài động vật không xương sống có thể sống trong môi trường nước và trên cạn",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Một số động vật có thể thay đổi màu sắc cơ thể để ngụy trang",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Một số loài động vật có thể tự tái tạo chi bị mất",
                     "index": 3,
-                    "isAnswer": true,
                     "optionLabel": "D"
                 }
             ]
@@ -1192,37 +1029,32 @@
             "typeAnswer": "1",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
-                0,
-                1,
-                2
+                "true",
+                "true",
+                "true",
+                "false"
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Rừng nhiệt đới có đa dạng thực vật phong phú hơn rừng ôn đới",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Cây trong rừng nhiệt đới thường có lá to để tăng khả năng hấp thụ ánh sáng",
                     "index": 1,
-                    "isAnswer": true,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Một số loài cây trong rừng nhiệt đới có khả năng tiết ra chất hóa học để chống lại động vật ăn lá",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Rễ cây trong rừng nhiệt đới thường cắm sâu xuống lòng đất để tìm nước",
                     "index": 3,
-                    "isAnswer": false,
                     "optionLabel": "D"
                 }
             ]
@@ -1236,37 +1068,32 @@
             "typeAnswer": "1",
             "explainQuestion": "",
             "isExplain": false,
-            "mappingScore": {},
             "optionAnswer": [
-                0,
-                2,
-                3
+                "true",
+                "false",
+                "true",
+                "true"
             ],
-            "scores": 1,
             "totalOption": 4,
             "options": [
                 {
                     "content": "Động vật có thể học hỏi và thay đổi hành vi dựa trên kinh nghiệm",
                     "index": 0,
-                    "isAnswer": true,
                     "optionLabel": "A"
                 },
                 {
                     "content": "Tất cả các loài động vật đều có tập tính xã hội",
                     "index": 1,
-                    "isAnswer": false,
                     "optionLabel": "B"
                 },
                 {
                     "content": "Một số loài chim có thể bắt chước âm thanh của con người để giao tiếp",
                     "index": 2,
-                    "isAnswer": true,
                     "optionLabel": "C"
                 },
                 {
                     "content": "Cá heo sử dụng sóng âm để định vị và săn mồi trong môi trường nước",
                     "index": 3,
-                    "isAnswer": true,
                     "optionLabel": "D"
                 }
             ]
@@ -1278,22 +1105,12 @@
             "numberId": 1,
             "indexPart": 2,
             "typeAnswer": "2",
-            "explainQuestion": "Đáp án: 3600",
-            "isExplain": true,
-            "mappingScore": {},
+            "explainQuestion": "",
+            "isExplain": false,
             "optionAnswer": [
-                0
+                "3600"
             ],
-            "scores": 1,
-            "totalOption": 1,
-            "options": [
-                {
-                    "content": "3600",
-                    "index": 0,
-                    "isAnswer": true,
-                    "optionLabel": "A"
-                }
-            ]
+            "totalOption": 0
         },
         {
             "isHL": false,
@@ -1302,22 +1119,12 @@
             "numberId": 2,
             "indexPart": 2,
             "typeAnswer": "2",
-            "explainQuestion": "Đáp án: 300",
-            "isExplain": true,
-            "mappingScore": {},
+            "explainQuestion": "",
+            "isExplain": false,
             "optionAnswer": [
-                0
+                "300"
             ],
-            "scores": 1,
-            "totalOption": 1,
-            "options": [
-                {
-                    "content": "300",
-                    "index": 0,
-                    "isAnswer": true,
-                    "optionLabel": "A"
-                }
-            ]
+            "totalOption": 0
         },
         {
             "isHL": false,
@@ -1326,22 +1133,12 @@
             "numberId": 3,
             "indexPart": 2,
             "typeAnswer": "2",
-            "explainQuestion": "Đáp án: 32",
-            "isExplain": true,
-            "mappingScore": {},
+            "explainQuestion": "",
+            "isExplain": false,
             "optionAnswer": [
-                0
+                "32"
             ],
-            "scores": 1,
-            "totalOption": 1,
-            "options": [
-                {
-                    "content": "32",
-                    "index": 0,
-                    "isAnswer": true,
-                    "optionLabel": "A"
-                }
-            ]
+            "totalOption": 0
         },
         {
             "isHL": false,
@@ -1350,22 +1147,12 @@
             "numberId": 4,
             "indexPart": 2,
             "typeAnswer": "2",
-            "explainQuestion": "Đáp án: 30",
-            "isExplain": true,
-            "mappingScore": {},
+            "explainQuestion": "",
+            "isExplain": false,
             "optionAnswer": [
-                0
+                "30"
             ],
-            "scores": 1,
-            "totalOption": 1,
-            "options": [
-                {
-                    "content": "30",
-                    "index": 0,
-                    "isAnswer": true,
-                    "optionLabel": "A"
-                }
-            ]
+            "totalOption": 0
         }
     ]
 }

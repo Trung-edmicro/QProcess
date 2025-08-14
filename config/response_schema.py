@@ -40,31 +40,21 @@ ARRAY_BASED_SCHEMA={
           },
           "explainQuestion": {
             "type": "string",
-            "description": "A detailed explanation for the question."
+            "description": "extract explanation from context related to the question"
           },
           "isExplain": {
             "type": "boolean",
             "description": "Whether the explanation should be displayed."
           },
-          "mappingScore": {
-            "type": "object",
-            "description": "An object for mapping scores based on different criteria."
+          "numberId": {
+            "type": "integer",
+            "description": "Question number identifier in the question",
+            "minimum": 1
           },
           "optionAnswer": {
             "type": "array",
-            "description": "An array containing the indices of the correct answers.",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "numberId": {
-            "type": "integer",
-            "description": "Question number identifier",
-            "minimum": 1
-          },
-          "scores": {
-            "type": "number",
-            "description": "The score for this question."
+            "description": "Extraction the indices/boolean values of the correct answers  .ex true/false type question ['true', 'false', 'false', 'true'], mutiple choice question[1,2,3]",
+            "items": {}
           },
           "totalOption": {
             "type": "integer",
@@ -88,10 +78,6 @@ ARRAY_BASED_SCHEMA={
                 "content": {
                   "type": "string",
                   "description": "The content of the option."
-                },
-                "isAnswer": {
-                  "type": "boolean",
-                  "description": "Whether this is a correct answer."
                 },
                 "optionLabel": {
                   "type": "string",
@@ -119,30 +105,23 @@ ARRAY_BASED_SCHEMA={
 AI_ANSWER_GEN = {
     "type": "object",
     "properties": {
-        "explainQuestion": {
-            "type": "string",
-            "description": "A brief explanation for the question, should use Vietnamese if possible"
-        },
         "optionAnswer": { 
             "type": "array",
-            "description": "An array containing the indices of the correct answers.",
-            "items": {
-                "type": "integer"
-            }
+            "description": "this is not answer, this is array containing the indices of the correct answers .ex true/false type question ['true', 'false', 'false', 'true'], mutiple choice question[1,2,3]",
+            "items": {}
         },
         "totalOption": {
             "type": "integer",
             "description": "The total number of options for the question."
         },
-        "typeAnswer": {
+        "explainQuestion": {
             "type": "string",
-            "description": "Type of answer this will heavely effect on answer options,you can rely on the question content to get get this: 0=Multiple choice single answer, 1=Multiple choice multiple answers, 2=Fill-in-the-blank essay, 3=Essay, 4=Essay single answer, 5=Essay multiple answers with order, 999=Undefined",
-            "enum": ["0", "1", "2", "3", "4", "5", "999"]
+            "description": "A detail explanation why the answer is the correct answer, should use Vietnamese if possible"
         },
         "options": {
             "type": "array",
-            "description": "Array of answer options.",
-             "minItems": 1,
+            "description": "An array of answer choices. For multiple-choice questions, list all options. For free-response questions, this array must contain ONLY ONE object where 'content' is the final answer from 'explainQuestion', isAnswer is true",
+            # "minItems": 1,
             "items": {
                 "type": "object",
                 "properties": {
@@ -152,7 +131,7 @@ AI_ANSWER_GEN = {
                     },
                     "isAnswer": {
                         "type": "boolean",
-                        "description": "Whether this is a correct answer."
+                        "description": "Whether this is a correct answer. "
                     },
                     "optionLabel": {
                         "type": "string",
@@ -163,16 +142,15 @@ AI_ANSWER_GEN = {
                     "content",
                     "isAnswer",
                     # "optionLabel"
-                ]
-                
+                ] 
             }
-        }
+        },
+        
     },
     "required": [
         "explainQuestion",
         "optionAnswer",
         "totalOption",
-        "typeAnswer",
         "options"
     ]
 }

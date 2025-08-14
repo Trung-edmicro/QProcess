@@ -1806,4 +1806,5 @@ def main():
             multiple_files_mode_mathpix(file_paths, max_workers)
 
 if __name__ == "__main__":
-    main()
+    # main()
+    convert_md_to_json_final(r"D:\Download\aicall\QProcess\data\output\mathpix_result_20250814_225240.md")

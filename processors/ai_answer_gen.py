@@ -10,7 +10,7 @@ import copy
 from config.vertex_ai_config import vertex_ai_config 
 TYPE_ANSWER_DATA = [
     { "id": 0, "text": 'Trắc nghiệm 1 đáp án', "disabled": False },
-    { "id": 1, "text": 'Trắc nghiệm nhiều đáp án', "disabled": False },
+    { "id": 1, "text": 'Trắc nghiệm nhiều đáp án có thể là dạng đúng sai', "disabled": False },
     { "id": 2, "text": 'Tự luận điền đáp án', "disabled": True },
     { "id": 3, "text": 'Tự luận', "disabled": False },
     { "id": 4, "text": 'Tự luận 1 đáp án', "disabled": True },
@@ -31,7 +31,7 @@ def get_type_answer_text(type_id):
     # Lặp qua từng dictionary trong danh sách
     for item in TYPE_ANSWER_DATA:
         # Nếu tìm thấy id khớp, trả về text
-        if item["id"] == type_id:
+        if int(item["id"]) == int(type_id):
             return item["text"]
     
     # Nếu vòng lặp kết thúc mà không tìm thấy, trả về giá trị mặc định
@@ -40,7 +40,7 @@ def get_type_answer_text(type_id):
 def _cau_hoi_da_co_dap_an(question_obj):
     """Hàm phụ để kiểm tra xem câu hỏi đã có đáp án hay chưa."""
     # Nếu có optionAnswer và không rỗng thì đã có đáp án
-    if question_obj.get("optionAnswer") and len(question_obj["optionAnswer"]) > 0:
+    if question_obj.get("optionAnswer") and len(question_obj["optionAnswer"])> 0 and question_obj.get("explainQuestion","") != "":
         return True
 
     # Hoặc nếu có bất kỳ isAnswer nào là true
@@ -156,15 +156,20 @@ def giai_cau_hoi_bang_ai(json_input) :
                     
                     # Xử lý và cập nhật kết quả
                     try:
-                        print(str(response ))
+                     
                         args = response.candidates[0].content.parts[0].function_call.args
+                       
                         question["explainQuestion"] = args.get("explainQuestion", "")
                         question["optionAnswer"] = args.get("optionAnswer", [])
-                        question["typeAnswer"] = args.get("typeAnswer", "999")
+                        # question["typeAnswer"] = args.get("typeAnswer", "999")
                         question["isExplain"] = True
                         # Cập nhật isAnswer trong options
-                        for i, opt in enumerate(question["options"]):
-                            opt["isAnswer"] = args["options"][i].get("isAnswer", False)
+                        if "options" in question_block:
+                            for i, opt in enumerate(question_block["options"]):
+                                opt["isAnswer"] = args["options"][i].get("isAnswer", False)
+                        else:
+                            question_block["options"] = args.get("options", [])
+                        
                         print(f"   => Đã giải xong!")
                     except (IndexError, AttributeError, KeyError) as e:
                         print(f"   => LỖI: Không thể lấy đáp án từ AI cho câu hỏi {question.get('numberId')}. Lỗi: {e}")
@@ -187,12 +192,17 @@ def giai_cau_hoi_bang_ai(json_input) :
                 
                 try:
                     args = response.candidates[0].content.parts[0].function_call.args
+                    print("sau khi gen từ ai",args )
                     question_block["explainQuestion"] = args.get("explainQuestion", "")
                     question_block["optionAnswer"] = args.get("optionAnswer", [])
-                    question_block["typeAnswer"] = args.get("typeAnswer", "999")
+                    # question_block["typeAnswer"] = args.get("typeAnswer", "999")
                     question_block["isExplain"] = True
-                    for i, opt in enumerate(question_block["options"]):
-                        opt["isAnswer"] = args["options"][i].get("isAnswer", False)
+                    if "options" in question_block:
+                        for i, opt in enumerate(question_block["options"]):
+                            opt["isAnswer"] = args["options"][i].get("isAnswer", False)
+                    else:
+                        question_block["options"] = args.get("options", [])
+
                     print(f"   => Đã giải xong!")
                 except (IndexError, AttributeError, KeyError) as e:
                     print(f"   => LỖI: Không thể lấy đáp án từ AI cho câu hỏi {question_block.get('numberId')}. Lỗi: {e}")
