@@ -1765,4 +1765,4 @@ def main():
             multiple_files_mode_mathpix(file_paths, max_workers)
 
 if __name__ == "__main__":
-    main()
+    process_markdown_with_vertex_ai(r"C:\Users\Admin\Downloads\QProcess\data\output\pdf3_mathpix_mapped_20250813_141622.md")

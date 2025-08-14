@@ -19,7 +19,7 @@ ARRAY_BASED_SCHEMA={
           },
           "data": {
             "type": "array",
-            "description": "Array of child questions belonging to this learning material (only applies when isHL=true).",
+            "description": "Array of child questions belonging to this learning material (only applies when isHL=true) often follow after the learning material. ",
             "items": {
               "type": "object",
               "description": "Schema for a child question within the learning material group.",

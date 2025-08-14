@@ -181,3 +181,7 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> tuple[str, str |
     except Exception as e:
         print(f"Đã xảy ra lỗi không xác định khi xử lý file '{markdown_file_path}': {e}\n")
         return (markdown_file_path, None)
+
+
+
+# process_markdown_with_vertex_ai(r"C:\Users\Admin\Downloads\QProcess\data\output\pdf3_mathpix_mapped_20250813_141622.md")
