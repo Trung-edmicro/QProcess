@@ -2,6 +2,7 @@
 import time
 import traceback
 import multiprocessing as mp
+import subprocess
 from config import app_config
 from datetime import datetime
 from vertexai.generative_models import GenerativeModel, Part, GenerationConfig
@@ -9,8 +10,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from processors import QuestionAnswerMapper
 from processors.image_processor import save_diagrams_from_line_data, insert_diagrams_into_text
 from processors.md2json import process_markdown_with_vertex_ai
+from processors.docx_to_markdown import run_pandoc, which_pandoc, target_paths
 from data.prompt.prompts import VERTEX_AI_OCR
-
 try:
     from pdf2image import convert_from_path
     import tempfile
@@ -21,12 +22,17 @@ except ImportError:
     print("⚠️ Và cài đặt poppler-utils (Windows: choco install poppler)")
 
 try:
-    import aspose.words as aw
-    import shutil
-    DOCX_SUPPORT = True
-except ImportError:
+    # Kiểm tra pandoc có sẵn không
+    pandoc_exe = which_pandoc(None)
+    if pandoc_exe:
+        DOCX_SUPPORT = True
+        print(f"✅ DOCX support: Pandoc found at {pandoc_exe}")
+    else:
+        DOCX_SUPPORT = False
+        print("⚠️ DOCX support không khả dụng. Cài đặt pandoc: https://pandoc.org/installing.html")
+except (ImportError, FileNotFoundError):
     DOCX_SUPPORT = False
-    print("⚠️ DOCX support không khả dụng. Cài đặt: pip install aspose-words")
+    print("⚠️ DOCX support không khả dụng. Cài đặt pandoc: https://pandoc.org/installing.html")
 
 def convert_md_to_json_final(md_file_path: str) -> str:
     """
@@ -51,6 +57,77 @@ def convert_md_to_json_final(md_file_path: str) -> str:
             
     except Exception as e:
         print(f"❌ Lỗi không xác định khi chuyển đổi MD sang JSON: {str(e)}")
+        return None
+
+def convert_docx_to_markdown(docx_path: str) -> str:
+    """
+    Convert DOCX to Markdown using pandoc với logic từ processors/docx_to_markdown.py
+    
+    Args:
+        docx_path: Đường dẫn file DOCX
+        
+    Returns:
+        str: Nội dung markdown hoặc None nếu lỗi
+    """
+    try:
+        from pathlib import Path
+        
+        # Kiểm tra pandoc
+        pandoc_exe = which_pandoc(None)
+        if not pandoc_exe:
+            print("❌ Pandoc không được tìm thấy. Vui lòng cài đặt pandoc: https://pandoc.org/installing.html")
+            return None
+        
+        # Setup paths với forward slash đồng nhất
+        src_path = Path(docx_path)
+        outdir = Path("data") / "diagrams" / "docx_conversion"
+        
+        # Sử dụng target_paths để tạo đường dẫn chuẩn
+        md_path, media_dir = target_paths(src_path, outdir, f"{src_path.stem}_media")
+        
+        # Đảm bảo sử dụng forward slash
+        media_dir_str = str(media_dir).replace("\\", "/")
+        
+        print(f"🔄 Đang convert DOCX → MD: {src_path.name}")
+        print(f"📂 Output: {str(md_path).replace(chr(92), '/')}")
+        print(f"🖼️ Media: {media_dir_str}")
+        
+        # Chạy pandoc với logic chuẩn và đường dẫn normalized
+        success, message = run_pandoc(
+            pandoc=pandoc_exe,
+            src=src_path,
+            dst_md=md_path,
+            media_dir=media_dir,
+            target="gfm",  # GitHub Flavored Markdown
+            wrap="none",
+            math="mathjax",
+            title=None
+        )
+        
+        if success and md_path.exists():
+            # Đọc nội dung markdown
+            with open(md_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            print(f"✅ Đã convert DOCX thành Markdown ({len(content)} ký tự)")
+            
+            # Dọn dẹp temp files (giữ lại media nếu có)
+            try:
+                md_path.unlink()  # Xóa file .md tạm
+                if outdir.exists() and not any(outdir.iterdir()):
+                    outdir.rmdir()  # Xóa folder nếu rỗng
+            except:
+                pass  # Không quan trọng nếu không xóa được
+            
+            return content
+        else:
+            print(f"❌ Pandoc conversion failed: {message}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Lỗi convert DOCX: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def convert_pdf_to_images(pdf_path, dpi=200):
@@ -121,55 +198,51 @@ def cleanup_temp_images(image_paths):
     except Exception as e:
         print(f"⚠️ Lỗi dọn dẹp temp files: {str(e)}")
 
-def convert_docx_to_pdf(docx_path):
+def process_single_docx_direct(docx_path, mode_name, index=None, show_result=False):
     """
-    Convert file DOCX thành PDF sử dụng aspose-words
+    Xử lý file DOCX bằng cách convert trực tiếp DOCX → MD → Mapping
     Args:
         docx_path: đường dẫn file DOCX
+        mode_name: tên mode để hiển thị ("Vertex AI" hoặc "Mathpix API")
+        index: index của file (nếu xử lý multiple)
+        show_result: có hiển thị kết quả không
     Returns:
-        str: đường dẫn file PDF tạm hoặc None nếu lỗi
+        tuple: (mapped_content, success, error_msg)
     """
     if not DOCX_SUPPORT:
-        print("❌ DOCX support không khả dụng!")
-        return None
+        error_msg = "DOCX support không khả dụng!"
+        print(f"❌ {error_msg}")
+        return (None, False, error_msg)
     
     try:
-        print(f"🔄 Đang convert DOCX thành PDF: {os.path.basename(docx_path)}")
+        print(f"� Đang xử lý DOCX với {mode_name}: {os.path.basename(docx_path)}")
         
-        # Tạo tên file PDF tạm với timestamp
-        temp_pdf_name = f"temp_docx_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        temp_pdf_path = os.path.join(os.path.dirname(docx_path), temp_pdf_name)
+        # Convert DOCX → MD
+        print(f"🔄 Đang convert DOCX thành Markdown...")
+        md_content = convert_docx_to_markdown(docx_path)
         
-        # Load DOCX document và save as PDF
-        doc = aw.Document(docx_path)
-        doc.save(temp_pdf_path)
+        if not md_content:
+            error_msg = "Không thể convert DOCX thành Markdown"
+            print(f"❌ {error_msg}")
+            return (None, False, error_msg)
         
-        if os.path.exists(temp_pdf_path):
-            print(f"✅ Đã convert thành PDF: {os.path.basename(temp_pdf_path)}")
-            return temp_pdf_path
-        else:
-            print("❌ Không thể tạo file PDF")
-            return None
-            
+        print(f"✅ Đã convert DOCX thành Markdown ({len(md_content)} ký tự)")
+        
+        if show_result:
+            print("=" * 60)
+            print(f"📄 KẾT QUẢ CONVERT DOCX ({mode_name.upper()}):")
+            print("=" * 60)
+            preview = md_content[:500] + "..." if len(md_content) > 500 else md_content
+            print(preview)
+            print("=" * 60)
+        
+        return (md_content, True, None)
+        
     except Exception as e:
-        print(f"❌ Lỗi convert DOCX to PDF: {e}")
-        return None
-
-def cleanup_temp_pdf(pdf_path):
-    """
-    Dọn dẹp file PDF tạm
-    Args:
-        pdf_path: đường dẫn file PDF tạm
-    """
-    if not pdf_path:
-        return
-    
-    try:
-        if os.path.exists(pdf_path):
-            os.remove(pdf_path)
-            print(f"🗑️ Đã xóa file PDF tạm: {os.path.basename(pdf_path)}")
-    except Exception as e:
-        print(f"❌ Lỗi dọn dẹp temp PDF: {e}")
+        error_msg = f"Lỗi xử lý DOCX: {str(e)}"
+        print(f"❌ {error_msg}")
+        traceback.print_exc()
+        return (None, False, error_msg)
 
 def ocr_single_pdf_vertex_ai(pdf_path, index=None, show_result=False):
     """
@@ -1117,22 +1190,8 @@ def process_single_docx_vertex_ai(docx_path, index=None, show_result=False):
         else:
             print(f"📄 Đang xử lý DOCX với Vertex AI: {os.path.basename(docx_path)}")
         
-        # Convert DOCX to PDF
-        temp_pdf_path = convert_docx_to_pdf(docx_path)
-        
-        if not temp_pdf_path:
-            error_msg = "Không thể convert DOCX to PDF"
-            if index is not None:
-                return (index, None, docx_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                return (None, False, error_msg)
-        
-        # Sử dụng OCR PDF với Vertex AI
-        result = ocr_single_pdf_vertex_ai(temp_pdf_path, index=None, show_result=False)
-        
-        # Dọn dẹp file PDF tạm
-        cleanup_temp_pdf(temp_pdf_path)
+        # Convert DOCX → MD trực tiếp
+        result = process_single_docx_direct(docx_path, "Vertex AI", index, show_result)
         
         if result and result[1]:  # success
             if index is not None:
@@ -1184,22 +1243,8 @@ def process_single_docx_mathpix(docx_path, index=None, show_result=False):
         else:
             print(f"📄 Đang xử lý DOCX với Mathpix: {os.path.basename(docx_path)}")
         
-        # Convert DOCX to PDF
-        temp_pdf_path = convert_docx_to_pdf(docx_path)
-        
-        if not temp_pdf_path:
-            error_msg = "Không thể convert DOCX to PDF"
-            if index is not None:
-                return (index, None, docx_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                return (None, False, error_msg)
-        
-        # Sử dụng OCR PDF với Mathpix
-        result = ocr_single_pdf_mathpix(temp_pdf_path, index=None, show_result=False)
-        
-        # Dọn dẹp file PDF tạm
-        cleanup_temp_pdf(temp_pdf_path)
+        # Convert DOCX → MD trực tiếp
+        result = process_single_docx_direct(docx_path, "Mathpix API", index, show_result)
         
         if result and result[1]:  # success
             if index is not None:
@@ -1438,19 +1483,14 @@ def single_pdf_mode_vertex_ai(pdf_path):
         # Áp dụng mapping nếu user muốn
         final_content = post_process_with_mapping(result[0], os.path.basename(pdf_path), "Vertex AI")
         
-        # Lưu kết quả
-        output_file = os.path.join(app_config.output_folder, f"{os.path.splitext(os.path.basename(pdf_path))[0]}_vertex_processed.md")
+        # Lưu kết quả sử dụng hàm save chuẩn (có MD → JSON)
+        output_file = save_ocr_result_to_markdown(final_content, pdf_path, app_config.output_folder)
         
-        try:
-            os.makedirs(app_config.output_folder, exist_ok=True)
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(final_content)
-            
+        if output_file:
             print(f"\n✅ Hoàn thành trong {processing_time:.2f} giây")
             print(f"💾 Đã lưu: {os.path.basename(output_file)}")
-            
-        except Exception as e:
-            print(f"❌ Lỗi khi lưu file: {e}")
+        else:
+            print(f"❌ Lỗi khi lưu file trong {processing_time:.2f} giây")
     else:
         print(f"❌ Xử lý thất bại trong {processing_time:.2f} giây")
         print(f"   Lỗi: {result[2]}")
@@ -1476,48 +1516,49 @@ def multiple_pdfs_mode_vertex_ai(pdf_paths, max_workers):
         
         if result[1] and result[1]:  # success và có result_text
             successful_count += 1
-            combined_results.append(f"# {filename}\n\n{result[1]}")
             
-            # Lưu file riêng lẻ
-            individual_output = os.path.join(app_config.output_folder, f"{os.path.splitext(filename)[0]}_vertex_processed.md")
-            try:
-                os.makedirs(app_config.output_folder, exist_ok=True)
-                with open(individual_output, 'w', encoding='utf-8') as f:
-                    f.write(result[1])
+            # Áp dụng mapping cho từng file
+            mapped_content = post_process_with_mapping(result[1], filename, "Vertex AI")
+            combined_results.append(f"# {filename}\n\n{mapped_content}")
+            
+            # Lưu file riêng lẻ với pipeline đầy đủ (MD → JSON)
+            individual_output = save_ocr_result_to_markdown(mapped_content, pdf_path, app_config.output_folder)
+            if individual_output:
                 print(f"✅ [File {i+1}] Đã lưu: {os.path.basename(individual_output)}")
-            except Exception as e:
-                print(f"⚠️ [File {i+1}] Lỗi lưu {filename}: {e}")
+            else:
+                print(f"⚠️ [File {i+1}] Lỗi lưu {filename}")
         else:
             error_msg = result[2] if len(result) > 2 else "Unknown error"
             failed_files.append((filename, error_msg))
             print(f"❌ [File {i+1}] Lỗi {filename}: {error_msg}")
     
-    # Lưu file tổng hợp
+    # Lưu file tổng hợp với pipeline đầy đủ
     if successful_count > 0:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        combined_output_file = os.path.join(app_config.output_folder, f"vertex_multiple_pdfs_{timestamp}_processed.md")
         
-        try:
-            with open(combined_output_file, 'w', encoding='utf-8') as f:
-                f.write("# Kết quả OCR Multiple PDFs (Vertex AI)\n\n")
-                f.write(f"**Thời gian xử lý:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"**Mode:** Vertex AI (Google Gemini 2.5-pro)\n")
-                f.write(f"**Tổng files:** {len(pdf_paths)}\n")
-                f.write(f"**Thành công:** {successful_count}\n")
-                f.write(f"**Thất bại:** {len(failed_files)}\n\n")
-                
-                if failed_files:
-                    f.write("## ❌ Files thất bại:\n\n")
-                    for filename, error in failed_files:
-                        f.write(f"- **{filename}**: {error}\n")
-                    f.write("\n")
-                
-                f.write("---\n\n")
-                f.write("\n\n".join(combined_results))
-            
+        # Tạo nội dung tổng hợp
+        combined_content = "# Kết quả OCR Multiple PDFs (Vertex AI)\n\n"
+        combined_content += f"**Thời gian xử lý:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        combined_content += f"**Mode:** Vertex AI (Google Gemini 2.5-pro)\n"
+        combined_content += f"**Tổng files:** {len(pdf_paths)}\n"
+        combined_content += f"**Thành công:** {successful_count}\n"
+        combined_content += f"**Thất bại:** {len(failed_files)}\n\n"
+        
+        if failed_files:
+            combined_content += "## ❌ Files thất bại:\n\n"
+            for filename, error in failed_files:
+                combined_content += f"- **{filename}**: {error}\n"
+            combined_content += "\n"
+        
+        combined_content += "---\n\n"
+        combined_content += "\n\n".join(combined_results)
+        
+        # Lưu với pipeline đầy đủ (MD → JSON)
+        combined_output_file = save_ocr_result_to_markdown(combined_content, pdf_paths[0], app_config.output_folder)
+        if combined_output_file:
             print(f"📋 File tổng hợp: {os.path.basename(combined_output_file)}")
-        except Exception as e:
-            print(f"⚠️ Lỗi tạo file tổng hợp: {e}")
+        else:
+            print(f"⚠️ Lỗi tạo file tổng hợp")
     
     end_time = time.time()
     processing_time = end_time - start_time
@@ -1765,4 +1806,4 @@ def main():
             multiple_files_mode_mathpix(file_paths, max_workers)
 
 if __name__ == "__main__":
-    process_markdown_with_vertex_ai(r"C:\Users\Admin\Downloads\QProcess\data\output\pdf3_mathpix_mapped_20250813_141622.md")
+    main()

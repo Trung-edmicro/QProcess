@@ -1,20 +1,38 @@
-# Core dependencies
-google-cloud-aiplatform>=1.50.0
-vertexai>=1.50.0
-google-auth>=2.20.0
-google-oauth2-tool>=0.0.3
+# ========================================
+# QProcess - OCR & Document Processing
+# ========================================
 
-# Image processing
-Pillow>=10.0.0
-pdf2image>=3.1.0
+# Core Google Cloud & AI Dependencies
+google-cloud-aiplatform
+vertexai
+google-auth
+google-oauth2-tool
+# Image & Document Processing
+Pillow
+pdf2image
+# Web Requests & API Calls
+requests
 
-# Web requests
-requests>=2.31.0
-
-# Environment management
-python-dotenv>=1.0.0
-aspose-words
-# Optional: For better PDF processing on Windows
-# Note: Also requires poppler-utils installation
-# Windows: choco install poppler
-# Or download from: https://github.com/oschwartz10612/poppler-windows/releases/
+# Environment & Configuration
+python-dotenv
+# Database (for some configs)
+sqlalchemy
+# ========================================
+# External Tools Required (Not pip packages)
+# ========================================
+# 1. Pandoc (for DOCX processing)
+#    - Windows: choco install pandoc
+#    - Or download: https://pandoc.org/installing.html
+#
+# 2. Poppler Utils (for PDF processing)
+#    - Windows: choco install poppler
+#    - Or download: https://github.com/oschwartz10612/poppler-windows/releases/
+#
+# 3. Mathpix API Key (for Mathpix OCR)
+#    - Sign up at: https://mathpix.com/
+#    - Add to .env file
+#
+# 4. Google Cloud Service Account (for Vertex AI)
+#    - Create service account in Google Cloud Console
+#    - Download JSON key file
+#    - Add path to .env file
