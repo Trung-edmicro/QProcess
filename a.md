@@ -3,7 +3,8 @@
         {
             "sectionIndex": 0,
             "sectionTitle": "Phần I: Trắc nghiệm khách quan",
-            "sectionDescription": "Phần này bao gồm các câu hỏi trắc nghiệm khách quan, mỗi câu hỏi có một đáp án đúng duy nhất.",
+            "sectionDescription": "Phần này bao gồm các câu hỏi trắc nghiệm khách quan, mỗi câu có một đáp án đúng duy nhất.",
+            "maxScore": 0,
             "questions": [
                 {
                     "content": "Virus có thể sống và sinh sản trong môi trường nào?",
@@ -682,7 +683,8 @@
         {
             "sectionIndex": 1,
             "sectionTitle": "Phần II: Trắc nghiệm đúng/sai",
-            "sectionDescription": "Hãy đánh dấu Đ (đúng) hoặc S (sai) cho các nhận định sau.",
+            "sectionDescription": "Phần này bao gồm các câu hỏi đúng/sai. Hãy đánh dấu Đ (đúng) hoặc S (sai) cho các nhận định sau.",
+            "maxScore": 0,
             "questions": [
                 {
                     "content": "Minh cùng bạn đi dã ngoại và quan sát thấy nhiều loại cây cối khác nhau. Bạn Minh cho rằng tất cả thực vật đều có khả năng quang hợp và rễ cây chỉ có chức năng hút nước.",
@@ -857,13 +859,14 @@
         {
             "sectionIndex": 2,
             "sectionTitle": "Phần III: Trắc nghiệm trả lời ngắn",
-            "sectionDescription": "Phần này bao gồm các câu hỏi yêu cầu điền câu trả lời ngắn.",
+            "sectionDescription": "Phần này bao gồm các câu hỏi trả lời ngắn. Hãy điền câu trả lời chính xác.",
+            "maxScore": 0,
             "questions": [
                 {
                     "content": "Một ao nước có 400 trùng biến hình. Mỗi ngày số lượng trùng biến hình tăng gấp ba. Hỏi sau 3 ngày, ao nước có bao nhiêu trùng biến hình?",
                     "indexPart": 2,
-                    "explainQuestion": "Lời giải\nĐáp án: 3600",
-                    "isExplain": true,
+                    "explainQuestion": "",
+                    "isExplain": false,
                     "numberId": 1,
                     "optionAnswer": [
                         "3600"
@@ -875,8 +878,8 @@
                 {
                     "content": "Một khu rừng có 400 cây nấm, trong đó 25 % là nấm ăn được. Hỏi khu rừng có bao nhiêu cây nấm ăn được?",
                     "indexPart": 2,
-                    "explainQuestion": "Lời giải\nĐáp án: 300",
-                    "isExplain": true,
+                    "explainQuestion": "",
+                    "isExplain": false,
                     "numberId": 2,
                     "optionAnswer": [
                         "300"
@@ -888,8 +891,8 @@
                 {
                     "content": "Một cây xanh quang hợp tạo ra 8 g oxygen trong 2 giờ. Hỏi sau 8 giờ, cây tạo ra bao nhiêu gam oxygen?",
                     "indexPart": 2,
-                    "explainQuestion": "Lời giải\nĐáp án: 32",
-                    "isExplain": true,
+                    "explainQuestion": "",
+                    "isExplain": false,
                     "numberId": 3,
                     "optionAnswer": [
                         "32"
@@ -901,8 +904,8 @@
                 {
                     "content": "Một con báo có thể chạy với vận tốc 90 km / h, gấp 3 lần vận tốc của chó sói. Hỏi chó sói chạy với vận tốc bao nhiêu km/h?",
                     "indexPart": 2,
-                    "explainQuestion": "Lời giải\nĐáp án: 30",
-                    "isExplain": true,
+                    "explainQuestion": "",
+                    "isExplain": false,
                     "numberId": 4,
                     "optionAnswer": [
                         "30"
