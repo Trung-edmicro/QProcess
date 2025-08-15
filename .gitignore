@@ -186,7 +186,7 @@ data/input/*.pdf
 data/images/*.png
 data/images/*.jpg
 data/images/*.jpeg
-
+data/diagrams/*.png
 # OS specific
 .DS_Store
 .DS_Store?
