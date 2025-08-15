@@ -110,9 +110,21 @@ def extract_image_urls(markdown_content: str) -> Tuple[str, Dict[str, str]]:
 
     # Pattern cho markdown image syntax: ![alt](url)
     markdown_image_pattern = re.compile(r"!\[.*?\]\((.*?)\)")
-    
+        
     # Pattern cho HTML img tag: <img src="url" ...>
     html_img_pattern = re.compile(r'<img[^>]+src\s*=\s*["\']([^"\']+)["\'][^>]*>', re.IGNORECASE)
+        
+    # Pattern cho HTML img tag với class imgSvg và base64 data: <img class="imgSvg" id="..." src="data:image/svg+xml;base64,...">
+    svg_img_pattern = re.compile(r'<img[^>]*class\s*=\s*["\']imgSvg["\'][^>]*src\s*=\s*["\']([^"\']+)["\'][^>]*>', re.IGNORECASE)
+        
+    # Xử lý markdown images trước
+    modified_markdown_content = markdown_image_pattern.sub(image_replacer, markdown_content)
+        
+    # Sau đó xử lý HTML img tags với class imgSvg
+    modified_markdown_content = svg_img_pattern.sub(image_replacer, modified_markdown_content)
+        
+    # Cuối cùng xử lý HTML img tags thông thường
+    modified_markdown_content = html_img_pattern.sub(image_replacer, modified_markdown_content)
     
     # Xử lý markdown images trước
     modified_content = markdown_image_pattern.sub(image_replacer, markdown_content)
@@ -361,79 +373,39 @@ def create_question_data(question, index, number_id, index_part, is_standalone=F
         question_data['isHL'] = False
     
     return question_data
-
 def process_json_data(json_object):
     """
-    Chuyển đổi dữ liệu JSON đầu vào, giữ nguyên thứ tự các câu hỏi.
-    - Các câu hỏi có cùng 'materialRef' sẽ được gộp lại thành một nhóm.
-    - Các câu hỏi không có 'materialRef' sẽ được giữ nguyên là các câu hỏi độc lập.
-    - Thứ tự của các nhóm và các câu hỏi độc lập được bảo toàn như ban đầu.
+    Chuyển đổi dữ liệu JSON từ cấu trúc 'quizParts' lồng nhau
+    thành một danh sách 'questions' phẳng.
+    Mỗi câu hỏi trong danh sách đầu ra sẽ được bổ sung thông tin
+    từ 'quizPart' (phần) cha của nó.
     """
-    print("Đang xử lý dữ liệu JSON theo cấu trúc mới...")
+    print("Đang xử lý dữ liệu JSON: Chuyển đổi 'quizParts' thành danh sách 'questions' phẳng...")
 
-    # Lấy dữ liệu gốc
-    materials = {mat['id']: mat for mat in json_object.get('materials', [])}
-    old_questions = json_object.get('questions', [])
+    # --- BƯỚC 1: Chuẩn bị ---
+    quiz_parts = json_object.get('quizParts', [])
+    all_processed_questions = [] # Danh sách câu hỏi cuối cùng
+    print(quiz_parts)
+    # --- BƯỚC 2: Duyệt qua từng phần và gộp câu hỏi ---
+    for part in quiz_parts:
+        print(part)
+        # Lấy thông tin chung của phần này để bổ sung vào từng câu hỏi
+        part_info = {
+            "sectionIndex": part.get("sectionIndex"),
+            "sectionTitle": part.get("sectionTitle"),
+            "sectionDescription": part.get("sectionDescription"),
+            "maxScore": part.get("maxScore"),
+            "questions":part.get('questions', [])
+        }
+        all_processed_questions.append(part_info)
+    print(all_processed_questions)
+      
 
-    # Cấu trúc mới để lưu kết quả
-    new_structure = []
-    # Dùng một set để theo dõi các material group đã được xử lý
-    processed_material_ids = set()
-    current_index_part = 0
-    index_in_current_part = 0
-    # Duyệt qua từng câu hỏi THEO ĐÚNG THỨ TỰ BAN ĐẦU
-    for question in old_questions:
-        material_ref = question.get('materialRef')
-        if current_index_part != question['indexPart']:
-            current_index_part = question['indexPart']
-            index_in_current_part = 0
-        # --- TRƯỜNG HỢP 1: Câu hỏi thuộc về một nhóm tài liệu ---
-        if material_ref and material_ref in materials:
-            # Chỉ xử lý nhóm này nếu nó chưa được xử lý trước đó
-            if material_ref not in processed_material_ids:
-                # Tìm tất cả các câu hỏi khác trong `old_questions` có cùng material_ref
-                group_questions = [
-                    q for q in old_questions if q.get('materialRef') == material_ref
-                ]
 
-                # Tạo danh sách các câu hỏi con cho nhóm này
-                child_questions = []
-                for q_in_group in group_questions:
-                    # Dùng hàm helper để format câu hỏi, giữ nguyên dữ liệu gốc
-                    child_question = create_question_data(q_in_group,index=index_in_current_part, number_id=q_in_group['numberId'], index_part=q_in_group['indexPart'], is_standalone=False)
-                    child_questions.append(child_question)
+   
 
-                # Tạo đối tượng nhóm tài liệu học tập
-                material_group = {
-                    "isHL": True,
-                    "content": materials[material_ref].get('content', ''),
-                    "data": child_questions
-                }
-                new_structure.append(material_group)
-
-                # Đánh dấu là đã xử lý group này để không lặp lại
-                processed_material_ids.add(material_ref)
-
-        # --- TRƯỜNG HỢP 2: Câu hỏi đứng riêng (standalone) ---
-        else:
-            # Tạo đối tượng cho câu hỏi đứng riêng
-            standalone_question_data =create_question_data(question,index=index_in_current_part, number_id=question['numberId'], index_part=question['indexPart'], is_standalone=True)
-
-            standalone_item = {
-                "isHL": False,
-                **standalone_question_data # Dùng unpacking để thêm tất cả các key từ câu hỏi
-            }
-            new_structure.append(standalone_item)
-        index_in_current_part+=1
-    # Trả về kết quả cuối cùng
-    result = {
-        "questions": new_structure
-        # Bạn có thể thêm các metadata khác vào đây nếu cần
-    }
-
-    print(f"Đã xử lý xong: {len(processed_material_ids)} nhóm tài liệu và "
-          f"{len(new_structure) - len(processed_material_ids)} câu hỏi đứng riêng.")
-    return result
+    print(f"Đã xử lý xong: {len(quiz_parts)} phần, tạo ra tổng cộng {len(all_processed_questions)} câu hỏi.")
+    return all_processed_questions
 def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optional[str]]:
     """
     Xử lý file Markdown, chuyển đổi hình ảnh sang Base64 và nhúng vào kết quả JSON.
@@ -477,10 +449,11 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optio
         print("AI đã xử lý xong. Đang nhúng ảnh Base64 vào cấu trúc JSON...")
         image_replacement_json_object = deep_replace_placeholders(json_object, base64_replacement_mapping)
         # 9. Xử lý json về định dạng đúng
+        save_json_result(image_replacement_json_object, "a.md")
         final_json_object = process_json_data(image_replacement_json_object)
-        save_json_result(final_json_object, "a.md")
+        
         #  10. Giai câu hỏi bằng ai 
-        final_json_object= giai_cau_hoi_bang_ai(final_json_object) 
+        # final_json_object= giai_cau_hoi_bang_ai(final_json_object) 
         #  11. Lưu kết quả
         save_json_result(final_json_object, output_json_path)
         print(f"✔️ Kết quả đã được lưu thành công tại '{output_json_path}'.\n")

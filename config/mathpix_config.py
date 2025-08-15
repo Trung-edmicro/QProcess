@@ -148,8 +148,8 @@ class MathpixConfig:
         return ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
     
     def get_supported_pdf_formats(self):
-        """Trả về list các format PDF được hỗ trợ"""
-        return ['.pdf']
+        """Trả về list các format document được hỗ trợ bởi PDF API (PDF và DOCX)"""
+        return ['.pdf', '.docx']
     
     def is_supported_image(self, image_path):
         """Kiểm tra xem file ảnh có được hỗ trợ không"""
@@ -160,7 +160,7 @@ class MathpixConfig:
         return ext in self.get_supported_formats()
     
     def is_supported_pdf(self, file_path):
-        """Kiểm tra xem file PDF có được hỗ trợ không"""
+        """Kiểm tra xem file có được hỗ trợ bởi PDF API không (PDF hoặc DOCX)"""
         if not os.path.exists(file_path):
             return False
         
@@ -168,14 +168,14 @@ class MathpixConfig:
         return ext in self.get_supported_pdf_formats()
     
     def is_supported_file(self, file_path):
-        """Kiểm tra xem file có được hỗ trợ không (ảnh hoặc PDF)"""
+        """Kiểm tra xem file có được hỗ trợ không (ảnh, PDF, hoặc DOCX)"""
         return self.is_supported_image(file_path) or self.is_supported_pdf(file_path)
     
-    def upload_pdf(self, pdf_path, options=None):
+    def upload_pdf(self, document_path, options=None):
         """
-        Upload PDF để xử lý với Mathpix API
+        Upload document (PDF hoặc DOCX) để xử lý với Mathpix API
         Args:
-            pdf_path: đường dẫn file PDF
+            document_path: đường dẫn file PDF hoặc DOCX
             options: dict các tùy chọn xử lý
         Returns:
             dict response chứa pdf_id hoặc None nếu lỗi
@@ -184,12 +184,13 @@ class MathpixConfig:
             print("❌ Mathpix chưa được cấu hình!")
             return None
             
-        if not os.path.exists(pdf_path):
-            print(f"❌ Không tìm thấy file PDF: {pdf_path}")
+        if not os.path.exists(document_path):
+            print(f"❌ Không tìm thấy file: {document_path}")
             return None
         
-        if not self.is_supported_pdf(pdf_path):
-            print(f"❌ File không phải PDF: {pdf_path}")
+        if not self.is_supported_pdf(document_path):
+            print(f"❌ File format không được hỗ trợ: {document_path}")
+            print(f"💡 Các format được hỗ trợ: {', '.join(self.get_supported_pdf_formats())}")
             return None
         
         # Default options for PDF processing - chỉ sử dụng format được hỗ trợ
@@ -208,9 +209,9 @@ class MathpixConfig:
             default_options.update(options)
         
         try:
-            print(f"🔄 Đang upload PDF: {os.path.basename(pdf_path)}")
+            print(f"🔄 Đang upload document: {os.path.basename(document_path)}")
             
-            with open(pdf_path, "rb") as f:
+            with open(document_path, "rb") as f:
                 response = requests.post(
                     self.pdf_base_url,
                     files={"file": f},
@@ -228,20 +229,20 @@ class MathpixConfig:
                 print(f"📊 Response: {result}")
                 
                 if pdf_id:
-                    print(f"✅ Upload thành công! PDF ID: {pdf_id}")
+                    print(f"✅ Upload thành công! Document ID: {pdf_id}")
                     return result
                 else:
-                    # Thử các key khác có thể chứa PDF ID
+                    # Thử các key khác có thể chứa document ID
                     possible_keys = ['id', 'document_id', 'file_id', 'processing_id']
                     for key in possible_keys:
                         if key in result:
                             pdf_id = result[key]
-                            print(f"✅ Upload thành công! PDF ID ({key}): {pdf_id}")
+                            print(f"✅ Upload thành công! Document ID ({key}): {pdf_id}")
                             # Update result với key chuẩn
                             result['pdf_id'] = pdf_id
                             return result
                     
-                    print(f"❌ Không tìm thấy PDF ID trong response!")
+                    print(f"❌ Không tìm thấy Document ID trong response!")
                     print(f"📋 Available keys: {list(result.keys())}")
                     return None
             else:
@@ -249,7 +250,7 @@ class MathpixConfig:
                 return None
                 
         except Exception as e:
-            print(f"❌ Lỗi khi upload PDF: {str(e)}")
+            print(f"❌ Lỗi khi upload document: {str(e)}")
             return None
     
     def check_pdf_status(self, pdf_id):
@@ -318,26 +319,26 @@ class MathpixConfig:
             print(f"❌ Lỗi khi download: {str(e)}")
             return None
     
-    def process_pdf(self, pdf_path, timeout=60, check_interval=2):
+    def process_pdf(self, document_path, timeout=60, check_interval=2):
         """
-        Xử lý PDF hoàn chỉnh: upload -> wait -> download
+        Xử lý document hoàn chỉnh: upload -> wait -> download
         Args:
-            pdf_path: đường dẫn file PDF
+            document_path: đường dẫn file PDF hoặc DOCX
             timeout: thời gian chờ tối đa (giây)
             check_interval: khoảng thời gian check status (giây)
         Returns:
             text content hoặc None nếu lỗi
         """
-        print(f"🔄 Bắt đầu xử lý PDF: {os.path.basename(pdf_path)}")
+        print(f"🔄 Bắt đầu xử lý document: {os.path.basename(document_path)}")
         
-        # Step 1: Upload PDF
-        upload_result = self.upload_pdf(pdf_path)
+        # Step 1: Upload document
+        upload_result = self.upload_pdf(document_path)
         if not upload_result:
             return None
         
         pdf_id = upload_result.get('pdf_id')
         if not pdf_id:
-            print("❌ Không nhận được PDF ID!")
+            print("❌ Không nhận được Document ID!")
             return None
         
         # Step 2: Wait for processing
@@ -375,7 +376,7 @@ class MathpixConfig:
             result_text = self.download_pdf_result(pdf_id, format_type)
             
             if result_text and not result_text.startswith("PK"):  # Không phải binary
-                print(f"✅ Đã nhận được kết quả PDF (format: {format_type})!")
+                print(f"✅ Đã nhận được kết quả document (format: {format_type})!")
                 return result_text
         
         print("❌ Không thể download kết quả text từ bất kỳ format nào!")
