@@ -711,32 +711,36 @@ def post_process_mathpix_result(mathpix_result):
     
     return '\n'.join(processed_lines)
 
-def ocr_single_pdf_mathpix(pdf_path, index=None, show_result=False):
+def ocr_single_document_mathpix(document_path, index=None, show_result=False):
     """
-    Xử lý OCR một PDF đơn lẻ bằng Mathpix API - Mode 2 
+    Xử lý OCR một document (PDF/DOCX) bằng Mathpix API - Mode 2 
     Args:
-        pdf_path: đường dẫn PDF
-        index: index của PDF (cho multiprocessing), None cho single mode
+        document_path: đường dẫn PDF hoặc DOCX
+        index: index của document (cho multiprocessing), None cho single mode
         show_result: có hiển thị kết quả chi tiết không (cho single mode)
     Returns:
         tuple (result_text, success, error_msg) cho single mode
-        tuple (index, result_text, pdf_path, success, error_msg) cho multiprocessing
+        tuple (index, result_text, document_path, success, error_msg) cho multiprocessing
     """
     try:
         # Xác định prefix cho log messages
         prefix = f"[Process {index}]" if index is not None else ""
         
+        # Xác định loại file
+        file_ext = os.path.splitext(document_path)[1].lower()
+        file_type = "PDF" if file_ext == '.pdf' else "DOCX" if file_ext == '.docx' else "Document"
+        
         if index is not None:
-            print(f"🔄 {prefix} Bắt đầu xử lý PDF (Mathpix): {os.path.basename(pdf_path)}")
+            print(f"🔄 {prefix} Bắt đầu xử lý {file_type} (Mathpix): {os.path.basename(document_path)}")
         else:
-            print("=== TEST OCR PDF VỚI MATHPIX API ===")
-            print(f"📄 Đang xử lý PDF: {os.path.basename(pdf_path)}")
+            print(f"=== TEST OCR {file_type.upper()} VỚI MATHPIX API ===")
+            print(f"📄 Đang xử lý {file_type}: {os.path.basename(document_path)}")
         
         # Kiểm tra cấu hình Mathpix
         if not app_config.mathpix.is_configured():
             error_msg = "Mathpix API chưa được cấu hình!"
             if index is not None:
-                return (index, None, pdf_path, False, error_msg)
+                return (index, None, document_path, False, error_msg)
             else:
                 print(f"❌ {error_msg}")
                 print("💡 Hãy thiết lập MATHPIX_APP_ID và MATHPIX_APP_KEY trong .env")
@@ -745,58 +749,59 @@ def ocr_single_pdf_mathpix(pdf_path, index=None, show_result=False):
         if index is None:
             print("✅ Mathpix API đã được cấu hình")
         
-        # Kiểm tra file có tồn tại và là PDF
-        if not os.path.exists(pdf_path):
-            error_msg = f"File không tồn tại: {pdf_path}"
+        # Kiểm tra file có tồn tại
+        if not os.path.exists(document_path):
+            error_msg = f"File không tồn tại: {document_path}"
             if index is not None:
-                return (index, None, pdf_path, False, error_msg)
+                return (index, None, document_path, False, error_msg)
             else:
                 print(f"❌ {error_msg}")
                 return (None, False, error_msg)
         
-        if not app_config.mathpix.is_supported_pdf(pdf_path):
-            error_msg = f"File không phải PDF: {pdf_path}"
+        # Kiểm tra file có được hỗ trợ không (PDF hoặc DOCX)
+        if file_ext not in ['.pdf', '.docx']:
+            error_msg = f"File format không được hỗ trợ: {file_ext}. Chỉ hỗ trợ PDF và DOCX"
             if index is not None:
-                return (index, None, pdf_path, False, error_msg)
+                return (index, None, document_path, False, error_msg)
             else:
                 print(f"❌ {error_msg}")
                 return (None, False, error_msg)
         
         if index is None:
-            print("🔄 Đang xử lý PDF với Mathpix API...")
+            print(f"🔄 Đang xử lý {file_type} với Mathpix API...")
         
-        # Gọi Mathpix PDF API
-        result_text = app_config.mathpix.process_pdf(pdf_path, timeout=120)
+        # Gọi Mathpix PDF API (hỗ trợ cả PDF và DOCX)
+        result_text = app_config.mathpix.process_pdf(document_path, timeout=120)
         
         if result_text and not result_text.startswith("PK"):  # Không phải binary
             # Post-process kết quả để phù hợp với format đề thi
             processed_text = post_process_mathpix_result({'text': result_text})
             
             if index is not None:
-                print(f"✅ {prefix} Hoàn thành: {os.path.basename(pdf_path)}")
-                return (index, processed_text, pdf_path, True, None)
+                print(f"✅ {prefix} Hoàn thành: {os.path.basename(document_path)}")
+                return (index, processed_text, document_path, True, None)
             else:
-                print("✅ Đã nhận được kết quả OCR từ Mathpix PDF!")
+                print(f"✅ Đã nhận được kết quả OCR từ Mathpix {file_type}!")
                 if show_result:
                     print("\n" + "="*60)
-                    print("📄 KẾT QUẢ OCR PDF (MATHPIX):")
+                    print(f"📄 KẾT QUẢ OCR {file_type.upper()} (MATHPIX):")
                     print("="*60)
                     print(processed_text[:1000] + "..." if len(processed_text) > 1000 else processed_text)
                     print("="*60)
                 return (processed_text, True, None)
         else:
-            error_msg = "Không nhận được kết quả text từ Mathpix PDF API"
+            error_msg = f"Không nhận được kết quả text từ Mathpix {file_type} API"
             if index is not None:
-                return (index, None, pdf_path, False, error_msg)
+                return (index, None, document_path, False, error_msg)
             else:
                 print(f"❌ {error_msg}")
                 return (None, False, error_msg)
                 
     except Exception as e:
-        error_msg = f"Lỗi khi xử lý PDF với Mathpix {pdf_path}: {str(e)}"
+        error_msg = f"Lỗi khi xử lý {file_type} với Mathpix {document_path}: {str(e)}"
         if index is not None:
             print(f"❌ {prefix} {error_msg}")
-            return (index, None, pdf_path, False, error_msg)
+            return (index, None, document_path, False, error_msg)
         else:
             print(f"❌ {error_msg}")
             traceback.print_exc()
@@ -815,7 +820,7 @@ def process_single_image_mathpix(image_info):
 
 def process_single_file_mathpix(file_info):
     """
-    Wrapper cho multiprocessing - gọi ocr_single_image_mathpix, ocr_single_pdf_mathpix hoặc process_single_docx_mathpix
+    Wrapper cho multiprocessing - gọi ocr_single_image_mathpix hoặc ocr_single_document_mathpix
     Args:
         file_info: tuple (index, file_path)
     Returns:
@@ -826,10 +831,8 @@ def process_single_file_mathpix(file_info):
     # Kiểm tra file type
     ext = os.path.splitext(file_path)[1].lower()
     
-    if ext == '.pdf':
-        return ocr_single_pdf_mathpix(file_path, index=index, show_result=False)
-    elif ext == '.docx':
-        return process_single_docx_mathpix(file_path, index=index, show_result=False)
+    if ext in ['.pdf', '.docx']:
+        return ocr_single_document_mathpix(file_path, index=index, show_result=False)
     else:
         return ocr_single_image_mathpix(file_path, index=index, show_result=False)
 
@@ -921,7 +924,7 @@ def process_multiple_images(image_paths, max_workers=None):
 
 def process_multiple_files_mathpix(file_paths, max_workers=None):
     """
-    Xử lý nhiều file (ảnh/PDF) đồng thời bằng multiprocessing với Mathpix API - Mode 2
+    Xử lý nhiều file (ảnh/PDF/DOCX) đồng thời bằng multiprocessing với Mathpix API - Mode 2
     Args:
         file_paths: list đường dẫn các file
         max_workers: số process tối đa (mặc định = số CPU)
@@ -933,8 +936,9 @@ def process_multiple_files_mathpix(file_paths, max_workers=None):
         return []
     
     # Phân loại file
-    image_count = sum(1 for f in file_paths if os.path.splitext(f)[1].lower() != '.pdf')
+    image_count = sum(1 for f in file_paths if os.path.splitext(f)[1].lower() not in ['.pdf', '.docx'])
     pdf_count = sum(1 for f in file_paths if os.path.splitext(f)[1].lower() == '.pdf')
+    docx_count = sum(1 for f in file_paths if os.path.splitext(f)[1].lower() == '.docx')
     
     # Xác định số workers
     if max_workers is None:
@@ -943,6 +947,7 @@ def process_multiple_files_mathpix(file_paths, max_workers=None):
     print(f"🚀 Bắt đầu xử lý {len(file_paths)} file với Mathpix API ({max_workers} processes)")
     print(f"   📷 Ảnh: {image_count}")
     print(f"   📄 PDF: {pdf_count}")
+    print(f"   📄 DOCX: {docx_count}")
     
     # Tạo list (index, file_path) để giữ thứ tự
     file_info_list = [(i, path) for i, path in enumerate(file_paths)]
@@ -976,7 +981,12 @@ def process_multiple_files_mathpix(file_paths, max_workers=None):
                     }
                     
                     completed_count += 1
-                    file_type = "PDF" if file_path.endswith('.pdf') else "Image"
+                    if file_path.endswith('.pdf'):
+                        file_type = "PDF"
+                    elif file_path.endswith('.docx'):
+                        file_type = "DOCX"
+                    else:
+                        file_type = "Image"
                     print(f"📊 Tiến độ: {completed_count}/{len(file_paths)} file hoàn thành ({file_type})")
                     
                 except Exception as e:
@@ -1225,59 +1235,6 @@ def process_single_docx_vertex_ai(docx_path, index=None, show_result=False):
             traceback.print_exc()
             return (None, False, error_msg)
 
-def process_single_docx_mathpix(docx_path, index=None, show_result=False):
-    """
-    Xử lý DOCX với Mathpix: DOCX → PDF → OCR → Mapping
-    Args:
-        docx_path: đường dẫn file DOCX
-        index: index của file (cho multiprocessing), None cho single mode
-        show_result: có hiển thị kết quả chi tiết không (cho single mode)
-    Returns:
-        tuple (result_text, success, error_msg) cho single mode
-        tuple (index, result_text, docx_path, success, error_msg) cho multiprocessing
-    """
-    try:
-        prefix = f"[Process {index}]" if index is not None else ""
-        
-        if index is not None:
-            print(f"🔄 {prefix} Bắt đầu xử lý DOCX (Mathpix): {os.path.basename(docx_path)}")
-        else:
-            print(f"📄 Đang xử lý DOCX với Mathpix: {os.path.basename(docx_path)}")
-        
-        # Convert DOCX → MD trực tiếp
-        result = process_single_docx_direct(docx_path, "Mathpix API", index, show_result)
-        
-        if result and result[1]:  # success
-            if index is not None:
-                print(f"✅ {prefix} Hoàn thành DOCX: {os.path.basename(docx_path)}")
-                return (index, result[0], docx_path, True, None)
-            else:
-                print("✅ Đã xử lý DOCX thành công!")
-                if show_result:
-                    print("\n" + "="*60)
-                    print("📄 KẾT QUẢ XỬ LÝ DOCX (MATHPIX):")
-                    print("="*60)
-                    print(result[0][:1000] + "..." if len(result[0]) > 1000 else result[0])
-                    print("="*60)
-                return (result[0], True, None)
-        else:
-            error_msg = "Không thể OCR bất kỳ ảnh nào từ DOCX"
-            if index is not None:
-                return (index, None, docx_path, False, error_msg)
-            else:
-                print(f"❌ {error_msg}")
-                return (None, False, error_msg)
-                
-    except Exception as e:
-        error_msg = f"Lỗi khi xử lý DOCX với Mathpix {docx_path}: {str(e)}"
-        if index is not None:
-            print(f"❌ {prefix} {error_msg}")
-            return (index, None, docx_path, False, error_msg)
-        else:
-            print(f"❌ {error_msg}")
-            traceback.print_exc()
-            return (None, False, error_msg)
-
 def get_image_files_from_folder(folder_path):
     """Lấy danh sách tất cả file ảnh trong thư mục - giữ để backward compatibility"""
     return [f for f in get_supported_files_from_folder(folder_path) 
@@ -1347,10 +1304,8 @@ def single_file_mode_mathpix(file_path):
     print(f"📁 File: {os.path.basename(file_path)}")
     
     # Gọi function phù hợp
-    if file_path.endswith('.pdf'):
-        result = ocr_single_pdf_mathpix(file_path, index=None, show_result=True)
-    elif file_path.endswith('.docx'):
-        result = process_single_docx_mathpix(file_path, index=None, show_result=True)
+    if file_path.endswith(('.pdf', '.docx')):
+        result = ocr_single_document_mathpix(file_path, index=None, show_result=True)
     else:
         result = ocr_single_image_mathpix(file_path, index=None, show_result=True)
 
@@ -1660,66 +1615,12 @@ def main():
     app_config.get_config_summary()
     print()
     
-    # Hiển thị PDF support status
-    if PDF_SUPPORT:
-        print("📄 PDF SUPPORT: ✅ Có hỗ trợ (pdf2image đã cài đặt)")
-    else:
-        print("📄 PDF SUPPORT: ❌ Không hỗ trợ (cần cài: pip install pdf2image)")
-        print("   💡 Mode 1 chỉ hỗ trợ ảnh, Mode 2 vẫn hỗ trợ đầy đủ")
-    
-    # Hiển thị DOCX support status
-    if DOCX_SUPPORT:
-        print("📄 DOCX SUPPORT: ✅ Có hỗ trợ (aspose-words đã cài đặt)")
-    else:
-        print("📄 DOCX SUPPORT: ❌ Không hỗ trợ (cần cài: pip install aspose-words)")
-    print()
-    
-    # Cho phép user chọn mode
-    print("🎯 CHỌN MODE XỬ LÝ:")
-    if PDF_SUPPORT and DOCX_SUPPORT:
-        print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Ảnh + PDF + DOCX)")
-    elif PDF_SUPPORT:
-        print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Ảnh + PDF)")
-    else:
-        print("1️⃣  Mode 1: Gemini OCR + Q&A Mapping (Chỉ ảnh)")
-    
-    if DOCX_SUPPORT:
-        print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF + DOCX)")
-    else:
-        print("2️⃣  Mode 2: Mathpix + Q&A Mapping (Ảnh + PDF)")
-    print("0️⃣  Thoát")
-    
-    while True:
-        try:
-            choice = input("\n👉 Nhập lựa chọn (1/2/0): ").strip()
-            
-            if choice == "0":
-                return
-            elif choice in ["1", "2"]:
-                break
-            else:
-                print("❌ Lựa chọn không hợp lệ! Vui lòng nhập 1, 2 hoặc 0.")
-        except KeyboardInterrupt:
-            return
-    
-    mode = int(choice)
-    
     # Lấy tất cả file ảnh, PDF và DOCX trong thư mục input
     file_paths = get_supported_files_from_folder(app_config.input_folder)
     
-    # Tạo mô tả file type name
-    if mode == 1:
-        support_types = ["ảnh"]
-        if PDF_SUPPORT:
-            support_types.append("PDF")
-        if DOCX_SUPPORT:
-            support_types.append("DOCX")
-        file_type_name = "/".join(support_types)
-    else:  # mode == 2
-        support_types = ["ảnh", "PDF"]
-        if DOCX_SUPPORT:
-            support_types.append("DOCX")
-        file_type_name = "/".join(support_types)
+    # Mode 2 - Mathpix luôn hỗ trợ cả PDF và DOCX
+    support_types = ["ảnh", "PDF", "DOCX"]
+    file_type_name = "/".join(support_types)
     
     if not file_paths:
         print(f"📁 Vui lòng thêm {file_type_name} vào: {app_config.input_folder}")
@@ -1737,74 +1638,17 @@ def main():
             file_type = "📷 IMG"
         print(f"   {i}. {file_type} {os.path.basename(path)}")
     
-    if mode == 1:
-        # Mode 1: Vertex AI OCR + Q&A Mapping
-        print(f"\n🤖 Sử dụng Mode 1: Vertex AI OCR + Q&A Mapping")
-        
-        support_list = ["Ảnh"]
-        if PDF_SUPPORT:
-            support_list.append("PDF")
-        if DOCX_SUPPORT:
-            support_list.append("DOCX")
-        print(f"📄 Hỗ trợ: {' + '.join(support_list)}")
-        
-        if num_files == 1:
-            # Mode 1: Xử lý 1 file đơn lẻ
-            file_path = file_paths[0]
-            if file_path.lower().endswith('.pdf'):
-                if PDF_SUPPORT:
-                    single_pdf_mode_vertex_ai(file_path)
-                else:
-                    print("❌ PDF không được hỗ trợ. Cần cài đặt: pip install pdf2image")
-            elif file_path.lower().endswith('.docx'):
-                if DOCX_SUPPORT:
-                    single_file_mode_vertex_ai(file_path)
-                else:
-                    print("❌ DOCX không được hỗ trợ. Cần cài đặt: pip install docx2pdf")
-            else:
-                single_image_mode(file_path)
-        else:
-            # Xử lý với số process = số CPU hoặc số file (tùy cái nào nhỏ hơn)
-            max_workers = min(num_files, mp.cpu_count())
-            print(f"🚀 Sử dụng {max_workers} processes")
-            
-            # Phân loại files
-            image_files = [f for f in file_paths if not f.lower().endswith(('.pdf', '.docx'))]
-            pdf_files = [f for f in file_paths if f.lower().endswith('.pdf')]
-            docx_files = [f for f in file_paths if f.lower().endswith('.docx')]
-            
-            if image_files:
-                print(f"📷 Xử lý {len(image_files)} ảnh với Vertex AI...")
-                multiple_images_mode(image_files, max_workers)
-            
-            if pdf_files:
-                if PDF_SUPPORT:
-                    print(f"📄 Xử lý {len(pdf_files)} PDF với Vertex AI...")
-                    multiple_pdfs_mode_vertex_ai(pdf_files, max_workers)
-                else:
-                    print(f"❌ Bỏ qua {len(pdf_files)} PDF (cần cài pdf2image)")
-            
-            if docx_files:
-                if DOCX_SUPPORT:
-                    print(f"📄 Xử lý {len(docx_files)} DOCX với Vertex AI...")
-                    # Xử lý DOCX tuần tự vì có convert step
-                    for docx_file in docx_files:
-                        single_file_mode_vertex_ai(docx_file)
-                else:
-                    print(f"❌ Bỏ qua {len(docx_files)} DOCX (cần cài docx2pdf)")
-                    
-    elif mode == 2:
-        # Mode 2: Mathpix OCR + Q&A Mapping
-        print(f"\n📐 Sử dụng Mode 2: Mathpix API OCR + Q&A Mapping")
-        
-        if num_files == 1:
-            # Mode 2: Xử lý 1 file đơn lẻ
-            single_file_mode_mathpix(file_paths[0])
-        else:
-            # Xử lý với số process = số CPU hoặc số file (tùy cái nào nhỏ hơn)
-            max_workers = min(num_files, mp.cpu_count())
-            print(f"🚀 Sử dụng {max_workers} processes")
-            multiple_files_mode_mathpix(file_paths, max_workers)
+    # Mode 2: Mathpix OCR + Q&A Mapping
+    print(f"\n� Bắt đầu xử lý với Mathpix API...")
+    
+    if num_files == 1:
+        # Mode 2: Xử lý 1 file đơn lẻ
+        single_file_mode_mathpix(file_paths[0])
+    else:
+        # Xử lý với số process = số CPU hoặc số file (tùy cái nào nhỏ hơn)
+        max_workers = min(num_files, mp.cpu_count())
+        print(f"🚀 Sử dụng {max_workers} processes")
+        multiple_files_mode_mathpix(file_paths, max_workers)
 
 if __name__ == "__main__":
-    main()
+   main()
