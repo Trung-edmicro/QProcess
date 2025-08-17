@@ -1,6 +1,6 @@
-ARRAY_BASED_SCHEMA={
+ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
   "type": "object",
-  "description": "Schema for quiz questions with support for accompanying learning materials.",
+  "description": "Schema for quiz questions with support for accompanying learning materials and sections.",
   "properties": {
     "materials": {
       "type": "array",
@@ -23,134 +23,163 @@ ARRAY_BASED_SCHEMA={
         ]
       }
     },
-    "questions": {
+    "sections": {
       "type": "array",
-      "description": "Array of questions.",
+      "description": "Array of sections/chapters organizing the quiz questions.",
       "items": {
         "type": "object",
         "properties": {
-          "content": {
+          # "sectionIndex": {
+          #   "type": "integer",
+          #   "description": "Index of the section (0-based ordering).",
+          #   "minimum": 0
+          # },
+          "sectionTitle": {
             "type": "string",
-            "description": "The content (text/HTML) of the question."
+            "description": "Title of the section , without the numbering part in the section title, ex. (Câu trắc nghiệm nhiều phương án lựa chọn...')."
           },
-          "indexPart": {
-            "type": "integer",
-            "description": "The index identifying the quiz section this question belongs to start with 0",
-            "minimum": 0
-          },
-          "explainQuestion": {
+          "sectionDescription": {
             "type": "string",
-            "description": "extract explanation from context related to the question"
+            "description": "Ai generated description or instructions for the section base on the content."
           },
-          "isExplain": {
-            "type": "boolean",
-            "description": "Whether the explanation should be displayed."
+          "maxScore": {
+            "type": "number",
+            "description": "Maximum score possible for this section."
           },
-          "numberId": {
-            "type": "integer",
-            "description": "Question number identifier in the question",
-            "minimum": 1
-          },
-          "optionAnswer": {
+          "questions": {
             "type": "array",
-            "description": "Extraction the indices/boolean values of the correct answers  .ex true/false type question ['true', 'false', 'false', 'true'], mutiple choice question[1,2,3]",
-            "items": {}
-          },
-          "totalOption": {
-            "type": "integer",
-            "description": "The total number of options for the question."
-          },
-          "typeAnswer": {
-            "type": "string",
-             "description": "Type of answer,you rely on the question content to get get this: 0=Multiple choice single answer, 1=Multiple choice multiple answers, 2=Fill-in-the-blank essay, 3=Essay, 4=Essay single answer, 5=Essay multiple answers with order, 999=Undefined",
-            "enum": ["0", "1", "2", "3", "4", "5", "999"]
-          },
-          "materialRef": {
-            "type": "string",
-            "description": "A reference to the 'id' of a material in the 'materials' array if this question is based on a learning material."
-          },
-          "options": {
-            "type": "array",
-            "description": "Array of answer options.",
+            "description": "Array of questions belonging to this section.",
             "items": {
               "type": "object",
               "properties": {
                 "content": {
                   "type": "string",
-                  "description": "The content of the option."
+                  "description": "The content (text/HTML) of the question,remove numbering part in the content."
                 },
-                "optionLabel": {
+                "explainQuestion": {
                   "type": "string",
-                  "description": "The label for the option (A, B, C, D)."
+                  "description": "A detail explanation why the answer is the correct answer, should use Vietnamese if possible"
+                },
+                # "isExplain": {
+                #   "type": "boolean",
+                #   "description": "Whether the explanation should be displayed."
+                # },
+                # "numberId": {
+                #   "type": "integer",
+                #   "description": "Question number identifier in the question.",
+                #   "minimum": 1
+                # },
+                # "totalOption": {
+                #   "type": "integer",
+                #   "description": "The total number of options for the question."
+                # },
+                "typeAnswer": {
+                  "type": "string",
+                  "description": "Type of answer, you rely on the question content to get this: 0=Multiple choice single answer, 1=Multiple choice multiple answers, 2=Fill-in-the-blank essay, 3=Essay, 4=Essay single answer, 5=Essay multiple answers with order,6=True/False question, 999=Undefined",
+                  "enum": ["0", "1", "2", "3", "4", "5","6", "999"]
+                },
+                "correctOption": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "description": "For typeAnswer='6', True/False questions - array of boolean values for individual statements to evaluate etc. Example: [true, false, false, true]",
+                      "items": {
+                        "type": "boolean"
+                      },
+                      "minItems": 1
+                    },
+                    {
+                      "type": "array", 
+                      "description": "For typeAnswer='0','1', Single or Multiple choice questions - array of integer indices of correct answers (0-based). Can be single answer [1] or multiple answers [0, 2, 3].",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "minItems": 1
+                    },
+                    {
+                      "type": "array",
+                      "description": "for typeAnswer='5','4','3', Last answer for the questions.",
+                      "maxItems": 0
+                    }
+                  ]
+                },
+                "materialRef": {
+                  "type": "string",
+                  "description": "A reference to the 'id' of a material in the 'materials' array if this question is based on a learning material."
+                },
+                "options": {
+                  "anyOf": [
+                    { "type": "array",
+                      "description": "Array of answer options.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "content": {
+                            "type": "string",
+                            "description": "The content (text/HTML) of the option."
+                          },
+                          "isAnswer": {
+                            "type": "boolean",
+                            "description": "Whether the option is the correct answer."
+                          },
+                          "optionLabel": {
+                            "type": "string",
+                            "description": "The label for the option (A, B, C, D)."
+                          }
+                        },
+                        "required": [
+                          "content"
+                        ]
+                      }},
+                      {"type": "array",
+                        "description": "for typeAnswer='5','4','3', Array with only one option to show the answer.",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "content": {
+                              "type": "string",
+                              "description": "The short content  (text/HTML) of the last answer."
+                            },
+                            "isAnswer":{  "type": "boolean",
+                                          "description": "default is true",
+                                          "default": True},
+                            "optionLabel":{  "type": "string",
+                                              "description": "default is A",
+                                              "default": "A"}
+                          },
+                          "required": [
+                            "content",
+                            "isAnswer",
+                            "optionLabel"
+                          ]
+                  }}
+                  ]
+                  
                 }
               },
               "required": [
-                "content"
+                "content",
+                "typeAnswer",
+                "explainQuestion",
+                # "isExplain",
+                # "numberId",
+                # "totalOption",
+                "correctOption",
+                "options"
               ]
             }
           }
         },
         "required": [
-          "content",
-          "typeAnswer",
-          "indexPart"
+          # "sectionIndex",
+          "sectionTitle",
+          "sectionDescription",
+          "questions",
+          "maxScore"
         ]
       }
     }
   },
-  "required": [
-    "questions"
-  ]
-}
-AI_ANSWER_GEN = {
-    "type": "object",
-    "properties": {
-        "optionAnswer": { 
-            "type": "array",
-            "description": "this is not answer, this is array containing the indices of the correct answers .ex true/false type question ['true', 'false', 'false', 'true'], mutiple choice question[1,2,3]",
-            "items": {}
-        },
-        "totalOption": {
-            "type": "integer",
-            "description": "The total number of options for the question."
-        },
-        "explainQuestion": {
-            "type": "string",
-            "description": "A detail explanation why the answer is the correct answer, should use Vietnamese if possible"
-        },
-        "options": {
-            "type": "array",
-            "description": "An array of answer choices. For multiple-choice questions, list all options. For free-response questions, this array must contain ONLY ONE object where 'content' is the final answer from 'explainQuestion', isAnswer is true",
-            # "minItems": 1,
-            "items": {
-                "type": "object",
-                "properties": {
-                    "content": {
-                        "type": "string",
-                        "description": "The content of the option."
-                    },
-                    "isAnswer": {
-                        "type": "boolean",
-                        "description": "Whether this is a correct answer. "
-                    },
-                    "optionLabel": {
-                        "type": "string",
-                        "description": "The label for the option (A, B, C, D)."
-                    }
-                },
-                "required": [
-                    "content",
-                    "isAnswer",
-                    # "optionLabel"
-                ] 
-            }
-        },
-        
-    },
-    "required": [
-        "explainQuestion",
-        "optionAnswer",
-        "totalOption",
-        "options"
-    ]
+  "required": ["sections"]
 }

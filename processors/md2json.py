@@ -10,7 +10,6 @@ import requests
 from config.vertex_ai_config import vertex_ai_config 
 from config.response_schema import ARRAY_BASED_SCHEMA
 from data.prompt.prompts import MD2JSON
-from processors.ai_answer_gen import giai_cau_hoi_bang_ai
 
 def deep_replace_placeholders(data_structure: Union[Dict, list, str, Any], 
                             replacement_mapping: Dict[str, str]) -> Union[Dict, list, str, Any]:
@@ -308,60 +307,6 @@ def save_json_result(json_object: Any, output_path: str) -> None:
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(json_object, f, ensure_ascii=False, indent=4)
 
-
-
-def create_question_data(question, index, number_id, index_part, is_standalone=False):
-    """
-    Tạo dữ liệu question theo format mới
-    """
-    # Xử lý options
-    processed_options = []
-    if 'options' in question:
-        for i, option in enumerate(question['options']):
-            processed_option = {
-                "content": option.get('content', ''),
-                "index": i
-            }
-            
-            # Thêm isAnswer nếu có
-            if 'isAnswer' in option:
-                processed_option['isAnswer'] = option['isAnswer']
-            
-            # Tự động tạo optionLabel
-            if i < 26:  # A-Z
-                processed_option['optionLabel'] = chr(65 + i)  # A, B, C, D...
-            
-            processed_options.append(processed_option)
-    
-    # Tạo base question data
-    question_data = {
-        "content": question.get('content', ''),
-        "index": index,
-        "numberId": number_id,
-        "indexPart": index_part,
-        "typeAnswer": question.get('typeAnswer', '999')
-    }
-    
-    # Thêm các trường optional nếu có
-    optional_fields = [
-        'explainQuestion', 'isExplain', 'mappingScore', 
-        'optionAnswer', 'scores', 'totalOption'
-    ]
-    
-    for field in optional_fields:
-        if field in question:
-            question_data[field] = question[field]
-    
-    # Thêm options nếu có
-    if processed_options:
-        question_data['options'] = processed_options
-    
-    # Nếu là standalone question, thêm isHL=false
-    if is_standalone:
-        question_data['isHL'] = False
-    
-    return question_data
-
 def process_json_data(json_object):
     """
     Chuyển đổi dữ liệu JSON đầu vào, giữ nguyên thứ tự các câu hỏi.
@@ -371,9 +316,6 @@ def process_json_data(json_object):
     """
     print("Đang xử lý dữ liệu JSON theo cấu trúc mới...")
 
-    # Lấy dữ liệu gốc
-    materials = {mat['id']: mat for mat in json_object.get('materials', [])}
-    old_questions = json_object.get('questions', [])
 
     # Cấu trúc mới để lưu kết quả
     new_structure = []
@@ -382,58 +324,56 @@ def process_json_data(json_object):
     current_index_part = 0
     index_in_current_part = 0
     # Duyệt qua từng câu hỏi THEO ĐÚNG THỨ TỰ BAN ĐẦU
-    for question in old_questions:
-        material_ref = question.get('materialRef')
-        if current_index_part != question['indexPart']:
-            current_index_part = question['indexPart']
-            index_in_current_part = 0
-        # --- TRƯỜNG HỢP 1: Câu hỏi thuộc về một nhóm tài liệu ---
-        if material_ref and material_ref in materials:
-            # Chỉ xử lý nhóm này nếu nó chưa được xử lý trước đó
-            if material_ref not in processed_material_ids:
-                # Tìm tất cả các câu hỏi khác trong `old_questions` có cùng material_ref
-                group_questions = [
-                    q for q in old_questions if q.get('materialRef') == material_ref
-                ]
+    for section in json_object.get("sections", []):
+        index_in_current_part=0
+        questions = section.get("questions", [])
+        
+        section["sectionIndex"] = current_index_part
 
-                # Tạo danh sách các câu hỏi con cho nhóm này
-                child_questions = []
-                for q_in_group in group_questions:
-                    # Dùng hàm helper để format câu hỏi, giữ nguyên dữ liệu gốc
-                    child_question = create_question_data(q_in_group,index=index_in_current_part, number_id=q_in_group['numberId'], index_part=q_in_group['indexPart'], is_standalone=False)
-                    child_questions.append(child_question)
+        num_questions = len(questions)
+        if not num_questions:
+            continue
+        
+        # 3. Tính điểm cho mỗi câu hỏi trong phần này
+        max_score = section.get("maxScore", 10)
+        score_per_question = float(max_score / num_questions) if num_questions > 0 else 0.0
 
-                # Tạo đối tượng nhóm tài liệu học tập
-                material_group = {
-                    "isHL": True,
-                    "content": materials[material_ref].get('content', ''),
-                    "data": child_questions
-                }
-                new_structure.append(material_group)
-
-                # Đánh dấu là đã xử lý group này để không lặp lại
-                processed_material_ids.add(material_ref)
-
-        # --- TRƯỜNG HỢP 2: Câu hỏi đứng riêng (standalone) ---
-        else:
-            # Tạo đối tượng cho câu hỏi đứng riêng
-            standalone_question_data =create_question_data(question,index=index_in_current_part, number_id=question['numberId'], index_part=question['indexPart'], is_standalone=True)
-
-            standalone_item = {
-                "isHL": False,
-                **standalone_question_data # Dùng unpacking để thêm tất cả các key từ câu hỏi
-            }
-            new_structure.append(standalone_item)
-        index_in_current_part+=1
-    # Trả về kết quả cuối cùng
-    result = {
-        "questions": new_structure
-        # Bạn có thể thêm các metadata khác vào đây nếu cần
-    }
-
+        # Duyệt qua các câu hỏi
+        for question in questions:
+            question["mappingScore"]={"1":100}
+            question["typeAnswer"] = int(question.get("typeAnswer", 0))
+            if question["typeAnswer"] == 6:
+                print(f"Chính sửa:  {question['typeAnswer']}")
+                question["typeAnswer"] = 1
+            question["indexPart"]=current_index_part
+            question["scores"]= score_per_question
+            question["isExplain"] = True
+            question["numberId"]= index_in_current_part
+            question["index"]= index_in_current_part
+            question["totalOption"]= len(question.get("options", []))
+            question["optionAnswer"] = question.get("correctOption", [])
+            del question["correctOption"]
+            i=0
+            for option in question.get("options", []):
+                option["index"] = i
+                i=i+1
+            index_in_current_part+=1
+        current_index_part+=1
     print(f"Đã xử lý xong: {len(processed_material_ids)} nhóm tài liệu và "
           f"{len(new_structure) - len(processed_material_ids)} câu hỏi đứng riêng.")
-    return result
+    return json_object
+
+def wrap_json_strings(data):
+    """Chuyển đổi tất cả string values trong JSON thành format <p>string</p>"""
+    
+    if isinstance(data, str):
+        return f"<p>{data}</p>"
+    elif isinstance(data, list):
+        return [wrap_json_strings(item) for item in data]
+    elif isinstance(data, dict):
+        return {key: wrap_json_strings(value) for key, value in data.items()}
+    else:
+        return data
 def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optional[str]]:
     """
     Xử lý file Markdown, chuyển đổi hình ảnh sang Base64 và nhúng vào kết quả JSON.
@@ -477,10 +417,10 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optio
         print("AI đã xử lý xong. Đang nhúng ảnh Base64 vào cấu trúc JSON...")
         image_replacement_json_object = deep_replace_placeholders(json_object, base64_replacement_mapping)
         # 9. Xử lý json về định dạng đúng
+        print("Đang xử lý cấu trúc JSON với định dạng đúng...Luu cvaof c.md")
         final_json_object = process_json_data(image_replacement_json_object)
-        save_json_result(final_json_object, "a.md")
         #  10. Giai câu hỏi bằng ai 
-        final_json_object= giai_cau_hoi_bang_ai(final_json_object) 
+        final_json_object = wrap_json_strings(final_json_object)
         #  11. Lưu kết quả
         save_json_result(final_json_object, output_json_path)
         print(f"✔️ Kết quả đã được lưu thành công tại '{output_json_path}'.\n")

@@ -1,7 +1,7 @@
 import json
 import re
 from typing import List, Dict, Any
-from config.response_schema import AI_ANSWER_GEN
+from config.response_schema import AI_ANSWER_GEN,ARRAY_BASED_SCHEMA
 import vertexai
 from vertexai.generative_models import  GenerativeModel,Tool,FunctionDeclaration 
 from vertexai.generative_models._generative_models import ToolConfig
@@ -115,7 +115,7 @@ def giai_cau_hoi_bang_ai(json_input) :
             FunctionDeclaration(
                 name="giai_cau_hoi",
                 description="Giải câu hỏi trắc nghiệm và cung cấp giải thích.",
-                parameters=AI_ANSWER_GEN,
+                parameters=ARRAY_BASED_SCHEMA,
             )
         ])]
     )
