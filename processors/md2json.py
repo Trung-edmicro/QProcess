@@ -342,9 +342,18 @@ def process_json_data(json_object):
         for question in questions:
             question["mappingScore"]={"1":100}
             question["typeAnswer"] = int(question.get("typeAnswer", 0))
+            
+            if question["is2025Format"] == True:
+                question["typeBai"]="DOCX2025"
+            elif question.get("materials") and len(question.get("materials"))>0:
+                question["typeBai"]="HOCLIEU"
+            else:
+                question["typeBai"]="THUONG"
+
             if question["typeAnswer"] == 6:
-                print(f"Chính sửa:  {question['typeAnswer']}")
                 question["typeAnswer"] = 1
+            question["isGroupMaterial"]=False
+            question["isGroupMaterial"]= bool(question.get("materialRef"))
             question["indexPart"]=current_index_part
             question["scores"]= score_per_question
             question["isExplain"] = True

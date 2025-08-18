@@ -2,9 +2,13 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
   "type": "object",
   "description": "Schema for quiz questions with support for accompanying learning materials and sections.",
   "properties": {
+    "is2025Format": {
+      "type": "boolean",
+      "description": "Indicates if the exam structure matches the standard 2025 exam format (3-part: MCQ, Multiple T/F, Short Answer). The analysis of the source description confirms this 3-part structure, with the question distribution (Part I / Part II / Part III) as follows: Mathematics (12/4/6); Physics, Chemistry, Biology, and Geography (18/4/6); History, Economic & Legal Education, and both Technology subjects (24/4/0); Informatics (24/6¹/0); and Foreign Language (40/0/0).",
+       },
     "materials": {
       "type": "array",
-      "description": "Array of learning materials (passages, images, etc.). Each material has an 'id' that questions can reference.",
+      "description": "Array of learning materials (passages, images, etc.) serves as the basis for **TWO (2) OR MORE** questions. Each material has an 'id' that questions can reference.",
       "items": {
         "type": "object",
         "properties": {
@@ -179,7 +183,11 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
           "maxScore"
         ]
       }
-    }
+    },
+    "is2025Format": {
+    "type": "boolean",
+    "description": "Indicates if the exam structure matches the standard 2025 exam format (3-section part: Multiple choice single answer, Multiple True/False question , Short Answer). This is determined by analyzing the source description.",
+    },
   },
   "required": ["sections"]
 }
