@@ -306,7 +306,30 @@ def save_json_result(json_object: Any, output_path: str) -> None:
     """
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(json_object, f, ensure_ascii=False, indent=4)
+QUESTION_TYPE_MAP = {
+    0: "TracNghiem4LuaChon",
+    1: "TracNghiem4LuaChon",
+    2: "VanDapNgan",
+    3: "TuLuan",
+    4: "VanDapNgan",
+    5: "TuLuan",
+    6: "TracNghiemDungSai",
+    9999: "TuLuan"
+}
 
+def get_question_type(input_code: int) -> str:
+    """
+    Lấy ra tên loại câu hỏi dựa trên mã đầu vào.
+    
+    Args:
+        input_code: Mã số cần tra cứu (ví dụ: 1, 2, 3, ...).
+
+    Returns:
+        Tên loại câu hỏi tương ứng hoặc một chuỗi thông báo nếu không tìm thấy.
+    """
+    # Sử dụng phương thức .get() để tra cứu an toàn
+    # Nếu không tìm thấy key, nó sẽ trả về giá trị mặc định "Loại không xác định"
+    return QUESTION_TYPE_MAP.get(input_code, "Loại không xác định")
 def process_json_data(json_object):
     """
     Chuyển đổi dữ liệu JSON đầu vào, giữ nguyên thứ tự các câu hỏi.
@@ -324,6 +347,13 @@ def process_json_data(json_object):
     current_index_part = 0
     index_in_current_part = 0
     # Duyệt qua từng câu hỏi THEO ĐÚNG THỨ TỰ BAN ĐẦU
+
+    if json_object["is2025Format"] == True:
+                json_object["typeBai"]="DOCX2025"
+    elif json_object.get("materials") and len(json_object.get("materials"))>0:
+                json_object["typeBai"]="HOCLIEU"
+    else:
+        json_object["typeBai"]="THUONG"        
     for section in json_object.get("sections", []):
         index_in_current_part=0
         questions = section.get("questions", [])
@@ -337,18 +367,13 @@ def process_json_data(json_object):
         # 3. Tính điểm cho mỗi câu hỏi trong phần này
         max_score = section.get("maxScore", 10)
         score_per_question = float(max_score / num_questions) if num_questions > 0 else 0.0
-
+        if(len(questions)>0):
+            section["typeSection"]=get_question_type(int(questions[0]["typeAnswer"]))
         # Duyệt qua các câu hỏi
         for question in questions:
             question["mappingScore"]={"1":100}
             question["typeAnswer"] = int(question.get("typeAnswer", 0))
             
-            if question["is2025Format"] == True:
-                question["typeBai"]="DOCX2025"
-            elif question.get("materials") and len(question.get("materials"))>0:
-                question["typeBai"]="HOCLIEU"
-            else:
-                question["typeBai"]="THUONG"
 
             if question["typeAnswer"] == 6:
                 question["typeAnswer"] = 1
@@ -380,7 +405,10 @@ def wrap_json_strings(data):
     elif isinstance(data, list):
         return [wrap_json_strings(item) for item in data]
     elif isinstance(data, dict):
-        return {key: wrap_json_strings(value) for key, value in data.items()}
+         return {
+            key: value if (key == "optionAnswer" or key== "typeBai" or key=="materialRef" or key=="typeSection")else wrap_json_strings(value)
+            for key, value in data.items()
+        }
     else:
         return data
 def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optional[str]]:

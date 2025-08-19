@@ -1651,5 +1651,4 @@ def main():
         multiple_files_mode_mathpix(file_paths, max_workers)
 
 if __name__ == "__main__":
-    process_markdown_with_vertex_ai(r"C:\Users\Admin\Downloads\QProcess\data\output\TA_HocLieu.md")
-#    main()
+    main()

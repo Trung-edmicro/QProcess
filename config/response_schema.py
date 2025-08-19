@@ -5,6 +5,7 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
     "is2025Format": {
       "type": "boolean",
       "description": "Indicates if the exam structure matches the standard 2025 exam format (3-part: MCQ, Multiple T/F, Short Answer). The analysis of the source description confirms this 3-part structure, with the question distribution (Part I / Part II / Part III) as follows: Mathematics (12/4/6); Physics, Chemistry, Biology, and Geography (18/4/6); History, Economic & Legal Education, and both Technology subjects (24/4/0); Informatics (24/6¹/0); and Foreign Language (40/0/0).",
+       "default":False
        },
     "materials": {
       "type": "array",
@@ -33,11 +34,6 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
       "items": {
         "type": "object",
         "properties": {
-          # "sectionIndex": {
-          #   "type": "integer",
-          #   "description": "Index of the section (0-based ordering).",
-          #   "minimum": 0
-          # },
           "sectionTitle": {
             "type": "string",
             "description": "Title of the section , without the numbering part in the section title, ex. (Câu trắc nghiệm nhiều phương án lựa chọn...')."
@@ -62,21 +58,8 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
                 },
                 "explainQuestion": {
                   "type": "string",
-                  "description": "A detail explanation why the answer is the correct answer, should use Vietnamese if possible"
+                  "description": "AI gen A detail explanation why the answer is the correct answer, should use Vietnamese if possible"
                 },
-                # "isExplain": {
-                #   "type": "boolean",
-                #   "description": "Whether the explanation should be displayed."
-                # },
-                # "numberId": {
-                #   "type": "integer",
-                #   "description": "Question number identifier in the question.",
-                #   "minimum": 1
-                # },
-                # "totalOption": {
-                #   "type": "integer",
-                #   "description": "The total number of options for the question."
-                # },
                 "typeAnswer": {
                   "type": "string",
                   "description": "Type of answer, you rely on the question content to get this: 0=Multiple choice single answer, 1=Multiple choice multiple answers, 2=Fill-in-the-blank essay, 3=Essay, 4=Essay single answer, 5=Essay multiple answers with order,6=True/False question, 999=Undefined",
@@ -86,7 +69,7 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
                   "anyOf": [
                     {
                       "type": "array",
-                      "description": "For typeAnswer='6', True/False questions - array of boolean values for individual statements to evaluate etc. Example: [true, false, false, true]",
+                      "description": "For typeAnswer='6', True/False questions - array of boolean values for individual statements to evaluate ,if cant extract from content etc. Example: [true, false, false, true]",
                       "items": {
                         "type": "boolean"
                       },
@@ -103,7 +86,7 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
                     },
                     {
                       "type": "array",
-                      "description": "for typeAnswer='5','4','3', Last answer for the questions.",
+                      "description": "for typeAnswer='5','4','3', Last answer for the questions,if cant extract from content , generate it",
                       "maxItems": 0
                     }
                   ]
@@ -166,9 +149,6 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
                 "content",
                 "typeAnswer",
                 "explainQuestion",
-                # "isExplain",
-                # "numberId",
-                # "totalOption",
                 "correctOption",
                 "options"
               ]
@@ -176,7 +156,6 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
           }
         },
         "required": [
-          # "sectionIndex",
           "sectionTitle",
           "sectionDescription",
           "questions",
@@ -184,10 +163,7 @@ ARRAY_BASED_SCHEMA=ARRAY_BASED_SCHEMA = {
         ]
       }
     },
-    "is2025Format": {
-    "type": "boolean",
-    "description": "Indicates if the exam structure matches the standard 2025 exam format (3-section part: Multiple choice single answer, Multiple True/False question , Short Answer). This is determined by analyzing the source description.",
-    },
+
   },
-  "required": ["sections"]
+  "required": ["sections","is2025Format"]
 }
