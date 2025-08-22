@@ -1651,4 +1651,6 @@ def main():
         multiple_files_mode_mathpix(file_paths, max_workers)
 
 if __name__ == "__main__":
-   main()
+    # process_markdown_with_vertex_ai(r"D:\Download\aicall\QProcess\data\output\1. Toán 1_mathpix_mapped_20250820_232920.md")
+    process_markdown_with_vertex_ai(r"D:\Download\aicall\QProcess\data\output\mathpix_result_20250820_174108.md")
+    # main()

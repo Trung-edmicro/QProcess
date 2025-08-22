@@ -4,13 +4,14 @@ import os
 import base64
 from typing import Dict, Tuple, Optional, Union, Any
 # --- CÁC IMPORT CẦN THIẾT ---
-from vertexai.preview.generative_models import GenerativeModel, Part, GenerationConfig
+from vertexai.preview.generative_models import GenerativeModel, Part, GenerationConfig,FunctionDeclaration,Tool
 import requests
 # Import cấu hình và schema của bạn
 from config.vertex_ai_config import vertex_ai_config 
 from config.response_schema import ARRAY_BASED_SCHEMA
 from data.prompt.prompts import MD2JSON
 
+from processors.match_indexies import replace_indices_with_content
 def deep_replace_placeholders(data_structure: Union[Dict, list, str, Any], 
                             replacement_mapping: Dict[str, str]) -> Union[Dict, list, str, Any]:
     """
@@ -252,7 +253,6 @@ def process_images_to_base64(image_url_mapping: Dict[str, str]) -> Dict[str, str
     
     return base64_replacement_mapping
 
-
 def call_vertex_ai_model(modified_markdown_content: str) -> str:
     """
     Gọi Vertex AI model để chuyển đổi markdown sang JSON.
@@ -271,11 +271,12 @@ def call_vertex_ai_model(modified_markdown_content: str) -> str:
     generation_config = GenerationConfig(
         temperature=0.2,
         top_p=0.8,
+    #  max_output_tokens=65000,
         response_mime_type="application/json",
         response_schema=ARRAY_BASED_SCHEMA
     )
    
-    model = GenerativeModel(vertex_ai_config.model_name)
+    model = GenerativeModel("gemini-2.5-flash-lite")
    
     print("Đang gửi yêu cầu (chỉ văn bản) đến Vertex AI...")
     response = model.generate_content(
@@ -384,6 +385,8 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optio
     Returns:
         Tuple[str, Optional[str]]: (đường_dẫn_input, đường_dẫn_output_hoặc_None)
     """
+    import time
+    start_time = time.perf_counter()
     # 1. Kiểm tra cấu hình và file đầu vào
     if not validate_vertex_ai_config():
         print(f"Bỏ qua file '{markdown_file_path}' do lỗi cấu hình Vertex AI.")
@@ -424,7 +427,12 @@ def process_markdown_with_vertex_ai(markdown_file_path: str) -> Tuple[str, Optio
         #  11. Lưu kết quả
         save_json_result(final_json_object, output_json_path)
         print(f"✔️ Kết quả đã được lưu thành công tại '{output_json_path}'.\n")
-       
+        end_time = time.perf_counter()
+        thoi_gian_chay = end_time - start_time
+        phut, giay_con_lai = divmod(thoi_gian_chay, 60)
+        print(f"Hàm đã chạy trong {int(phut)} phút {giay_con_lai:.2f} giây")
+
+        replace_indices_with_content(final_json_object,output_json_path)
         return (markdown_file_path, output_json_path)
         
     except json.JSONDecodeError as e:
